@@ -37,6 +37,8 @@ export default function NewProductPage() {
     specifications: []
   });
 
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     async function loadData() {
       const [catRes, brandRes, segRes, appRes] = await Promise.all([
@@ -66,6 +68,32 @@ export default function NewProductPage() {
       setFormData({ ...formData, main_image_url: publicUrl });
     } catch (error) { console.error(error); alert('Erro ao fazer upload'); }
     finally { setUploading(false); }
+  }
+
+  async function handleGalleryUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}_${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        uploadedUrls.push(publicUrl);
+      }
+      setFormData({ ...formData, gallery_urls: [...formData.gallery_urls, ...uploadedUrls] });
+    } catch (error) { console.error(error); alert('Erro ao fazer upload'); }
+    finally { setUploading(false); }
+  }
+
+  function removeGalleryImage(index: number) {
+    const newGallery = [...formData.gallery_urls];
+    newGallery.splice(index, 1);
+    setFormData({ ...formData, gallery_urls: newGallery });
   }
 
   async function handleSave() {
@@ -194,12 +222,46 @@ export default function NewProductPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Imagem */}
+          {/* Imagem Principal */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold mb-4">Imagem Principal</h2>
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               {formData.main_image_url ? <div className="relative"><img src={formData.main_image_url} alt="Preview" className="max-h-48 mx-auto object-contain" /><button onClick={() => setFormData({ ...formData, main_image_url: '' })} className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"><X className="w-4 h-4" /></button></div> : <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="flex flex-col items-center gap-2 text-gray-500"><ImageIcon className="w-10 h-10" /><span>{uploading ? 'Enviando...' : 'Selecionar imagem'}</span></button>}
+            </div>
+          </div>
+
+          {/* Galeria de Imagens */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold mb-4">Galeria de Imagens</h2>
+            <p className="text-sm text-gray-500 mb-4">Adicione fotos adicionais do produto (máximo 10)</p>
+            <input type="file" ref={galleryInputRef} onChange={handleGalleryUpload} accept="image/*" multiple className="hidden" />
+
+            {/* Grid de imagens da galeria */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+              {formData.gallery_urls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-24 object-cover rounded-lg border border-gray-200" />
+                  <button
+                    onClick={() => removeGalleryImage(index)}
+                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Botão adicionar */}
+              {formData.gallery_urls.length < 10 && (
+                <button
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={uploading}
+                  className="h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors"
+                >
+                  <Plus className="w-6 h-6" />
+                  <span className="text-xs mt-1">Adicionar</span>
+                </button>
+              )}
             </div>
           </div>
 

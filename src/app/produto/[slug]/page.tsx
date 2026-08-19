@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, Minus, Plus, Share2, FileText, Download, ExternalLink, Phone, Mail } from 'lucide-react';
-import { getProductBySlug, getRelatedProducts, getComplementaryProducts } from '@/lib/search';
+import { Check, Minus, Plus, Share2, FileText, Download, ExternalLink, Phone, Mail, Loader2 } from 'lucide-react';
+import { getProductBySlug, getProducts } from '@/lib/products';
 import { useQuote } from '@/providers/QuoteProvider';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -14,16 +14,87 @@ import { Badge } from '@/components/ui/Badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 
+// Tipo para produto do banco
+interface DbProduct {
+  id: string;
+  slug: string;
+  name: string;
+  reference: string;
+  short_description: string | null;
+  description: string | null;
+  category_id: string | null;
+  brand_id: string | null;
+  is_featured: boolean;
+  is_new: boolean;
+  availability: string;
+  stock_quantity: number;
+  minimum_stock: number;
+  is_consult_only: boolean;
+  main_image_url: string | null;
+  gallery_urls: string[];
+  keywords: string[];
+  created_at: string;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    short_name: string | null;
+  };
+  brand?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  specifications?: { label: string; value: string }[];
+}
+
 export default function ProductPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const product = getProductBySlug(slug);
+  const [product, setProduct] = useState<DbProduct | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const { addItem, toggleDrawer } = useQuote();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+
+  // Carregar produto do banco
+  useEffect(() => {
+    async function loadProduct() {
+      try {
+        const productData = await getProductBySlug(slug);
+        if (productData) {
+          setProduct(productData as unknown as DbProduct);
+
+          // Carregar produtos relacionados (mesma categoria)
+          if (productData.category_id) {
+            const allProducts = await getProducts({ categoryId: productData.category_id, limit: 5 });
+            setRelatedProducts(allProducts.products.filter(p => p.id !== productData.id).slice(0, 4) as unknown as DbProduct[]);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar produto:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProduct();
+  }, [slug]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#087A9F] mx-auto mb-4" />
+          <p className="text-[#102833]/60">Carregando produto...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -38,9 +109,6 @@ export default function ProductPage() {
     );
   }
 
-  const relatedProducts = getRelatedProducts(slug, 4);
-  const complementaryProducts = getComplementaryProducts(slug, 4);
-
   const handleAddToQuote = () => {
     setIsAdding(true);
     setTimeout(() => {
@@ -48,7 +116,7 @@ export default function ProductPage() {
         productId: product.id,
         slug: product.slug,
         name: product.name,
-        image: product.images[0] || '',
+        image: product.main_image_url || '',
         reference: product.reference,
         quantity,
       });
@@ -58,11 +126,14 @@ export default function ProductPage() {
     }, 500);
   };
 
+  // Obter todas as imagens do produto
+  const productImages = [product.main_image_url, ...(product.gallery_urls || [])].filter(Boolean);
+
   const handleShare = async () => {
     if (navigator.share) {
       await navigator.share({
         title: product.name,
-        text: product.shortDescription,
+        text: product.short_description || '',
         url: window.location.href,
       });
     } else {
@@ -93,7 +164,7 @@ export default function ProductPage() {
           <Breadcrumb
             items={[
               { label: 'Catálogo', href: '/catalogo' },
-              { label: product.category.name, href: `/catalogo?categoria=${product.category.slug}` },
+              { label: product.category?.name || 'Produto', href: `/catalogo?categoria=${product.category?.slug || ''}` },
               { label: product.name },
             ]}
           />
@@ -107,32 +178,54 @@ export default function ProductPage() {
           <div className="space-y-4">
             {/* Main Image */}
             <div className="bg-white rounded-xl border border-[#D8EEF5] p-8 aspect-square flex items-center justify-center">
-              <div className="w-64 h-64 bg-[#EDF9FC] rounded-lg flex items-center justify-center">
-                <span className="text-8xl text-[#087A9F]/30 font-bold">
-                  {product.category.shortName.charAt(0)}
-                </span>
+              {productImages[selectedImage] ? (
+                <Image
+                  src={productImages[selectedImage]}
+                  alt={product.name}
+                  width={400}
+                  height={400}
+                  className="object-contain max-h-80"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-[#EDF9FC] rounded-lg flex items-center justify-center">
+                  <span className="text-8xl text-[#087A9F]/30 font-bold">
+                    {product.category?.short_name?.charAt(0) || product.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+            {/* Thumbnails */}
+            {productImages.length > 1 && (
+              <div className="flex gap-3">
+                {productImages.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`w-20 h-20 rounded-lg border-2 transition-all ${
+                      selectedImage === i
+                        ? 'border-[#087A9F]'
+                        : 'border-[#D8EEF5] hover:border-[#087A9F]/50'
+                    }`}
+                  >
+                    {img ? (
+                      <Image
+                        src={img}
+                        alt={`${product.name} ${i + 1}`}
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#EDF9FC] flex items-center justify-center">
+                        <span className="text-2xl text-[#087A9F]/30 font-bold">
+                          {product.category?.short_name?.charAt(0) || product.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
-            </div>
-            {/* Thumbnails (placeholder) */}
-            <div className="flex gap-3">
-              {[0, 1, 2, 3].map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`w-20 h-20 rounded-lg border-2 transition-all ${
-                    selectedImage === i
-                      ? 'border-[#087A9F]'
-                      : 'border-[#D8EEF5] hover:border-[#087A9F]/50'
-                  }`}
-                >
-                  <div className="w-full h-full bg-[#EDF9FC] flex items-center justify-center">
-                    <span className="text-2xl text-[#087A9F]/30 font-bold">
-                      {product.category.shortName.charAt(0)}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -140,10 +233,10 @@ export default function ProductPage() {
             {/* Category & Badges */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-[#087A9F] uppercase tracking-wider">
-                {product.category.name}
+                {product.category?.name || 'Produto'}
               </span>
-              {product.isNew && <Badge variant="new">Novo</Badge>}
-              {product.featured && !product.isNew && <Badge variant="info">Destaque</Badge>}
+              {product.is_new && <Badge variant="new">Novo</Badge>}
+              {product.is_featured && !product.is_new && <Badge variant="info">Destaque</Badge>}
             </div>
 
             {/* Name */}
@@ -158,7 +251,7 @@ export default function ProductPage() {
 
             {/* Short Description */}
             <p className="text-lg text-[#102833]/80">
-              {product.shortDescription}
+              {product.short_description}
             </p>
 
             {/* Availability */}
@@ -171,7 +264,7 @@ export default function ProductPage() {
               <span className={`font-medium ${
                 product.availability === 'in-stock' ? 'text-emerald-600' : 'text-[#F59E0B]'
               }`}>
-                {availabilityLabel[product.availability]}
+                {availabilityLabel[product.availability as keyof typeof availabilityLabel] || 'Sob consulta'}
               </span>
             </div>
 
@@ -241,18 +334,10 @@ export default function ProductPage() {
                     <p className="text-[#102833]/80 leading-relaxed">
                       {product.description}
                     </p>
-                    <div className="mt-6">
-                      <h4 className="font-semibold text-[#102833] mb-3">Aplicações</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {product.applications.map((app) => (
-                          <Badge key={app} variant="default">{app}</Badge>
-                        ))}
-                      </div>
-                    </div>
                     {product.brand && (
                       <div className="mt-4">
                         <h4 className="font-semibold text-[#102833] mb-3">Marca</h4>
-                        <p className="text-[#102833]/80">{product.brand}</p>
+                        <p className="text-[#102833]/80">{product.brand.name}</p>
                       </div>
                     )}
                   </div>
@@ -265,7 +350,7 @@ export default function ProductPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <tbody className="divide-y divide-[#D8EEF5]">
-                        {product.specifications.map((spec, index) => (
+                        {(product.specifications || []).map((spec: any, index: number) => (
                           <tr key={index} className="hover:bg-[#F4FBFD]">
                             <td className="py-3 pr-4 font-medium text-[#102833] w-1/3">
                               {spec.label}
@@ -285,36 +370,9 @@ export default function ProductPage() {
                 label: 'Documentos',
                 content: (
                   <div className="space-y-3">
-                    {product.documents.length > 0 ? (
-                      product.documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between p-4 bg-[#F4FBFD] rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">
-                              {documentIcons[doc.type] || '📄'}
-                            </span>
-                            <div>
-                              <p className="font-medium text-[#102833]">{doc.name}</p>
-                              <p className="text-xs text-[#102833]/60">{doc.size}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" leftIcon={<ExternalLink className="w-4 h-4" />}>
-                              Visualizar
-                            </Button>
-                            <Button variant="ghost" size="sm" leftIcon={<Download className="w-4 h-4" />}>
-                              Baixar
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-[#102833]/60 text-center py-8">
-                        Nenhum documento disponível para este produto
-                      </p>
-                    )}
+                    <p className="text-[#102833]/60 text-center py-8">
+                      Nenhum documento disponível para este produto
+                    </p>
                   </div>
                 ),
               },
@@ -331,24 +389,8 @@ export default function ProductPage() {
               align="left"
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Complementary Products */}
-        {complementaryProducts.length > 0 && (
-          <section className="mt-16">
-            <SectionHeading
-              eyebrow="Produtos complementares"
-              title="Complete sua solução"
-              align="left"
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {complementaryProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {relatedProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
               ))}
             </div>
           </section>
