@@ -1,17 +1,95 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ArrowRight, ChevronRight, Sparkles } from 'lucide-react';
-import { categories, applications, products } from '@/data/mock';
+import { getCategories, getApplications, getFeaturedProducts, getNewProducts } from '@/lib/products';
 import { CategoryCard } from '@/components/catalog/CategoryCard';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 
+// Tipos para dados do banco
+interface DbCategory {
+  id: string;
+  name: string;
+  slug: string;
+  short_name: string | null;
+  description: string | null;
+  icon: string | null;
+}
+
+interface DbApplication {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
+
+interface DbProduct {
+  id: string;
+  slug: string;
+  name: string;
+  reference: string;
+  short_description: string | null;
+  description: string | null;
+  category_id: string | null;
+  brand_id: string | null;
+  is_featured: boolean;
+  is_new: boolean;
+  availability: string;
+  stock_quantity: number;
+  minimum_stock: number;
+  is_consult_only: boolean;
+  main_image_url: string | null;
+  gallery_urls: string[];
+  keywords: string[];
+  created_at: string;
+  category?: DbCategory;
+  brand?: { id: string; name: string; slug: string };
+}
+
+// Converter categoria do banco para formato do componente
+function normalizeCategory(cat: DbCategory) {
+  return {
+    id: cat.id,
+    slug: cat.slug,
+    name: cat.name,
+    shortName: cat.short_name || cat.name.substring(0, 3),
+    description: cat.description || '',
+    icon: cat.icon || 'TestTube',
+    index: 0,
+    productCount: 0
+  };
+}
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [catsData, appsData, featuredData] = await Promise.all([
+          getCategories(),
+          getApplications(),
+          getFeaturedProducts(8)
+        ]);
+        setCategories(catsData.map(normalizeCategory));
+        setApplications(appsData as any[]);
+        setFeaturedProducts(featuredData);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +97,6 @@ export default function HomePage() {
       window.location.href = `/catalogo?busca=${encodeURIComponent(searchQuery.trim())}`;
     }
   };
-
-  const featuredProducts = products.filter(p => p.featured).slice(0, 8);
 
   return (
     <div className="min-h-screen">
@@ -94,15 +170,27 @@ export default function HomePage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
-            {categories.map((category, index) => (
-              <div
-                key={category.id}
-                className="animate-slide-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <CategoryCard category={category} />
-              </div>
-            ))}
+            {loading ? (
+              // Skeleton loading
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-[#D8EEF5] p-6 h-48 animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded w-12 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))
+            ) : (
+              categories.map((category, index) => (
+                <div
+                  key={category.id}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <CategoryCard category={category} />
+                </div>
+              ))
+            )}
           </div>
 
           <div className="mt-8 text-center">
@@ -125,27 +213,39 @@ export default function HomePage() {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {applications.slice(0, 6).map((app, index) => (
-              <Link
-                key={app.id}
-                href={`/catalogo?aplicacao=${app.slug}`}
-                className="group flex items-start gap-4 p-6 bg-white rounded-xl border border-[#D8EEF5] hover:border-[#087A9F] transition-all card-hover animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 rounded-lg bg-[#F4FBFD] flex items-center justify-center flex-shrink-0 group-hover:bg-[#087A9F] transition-colors">
-                  <Sparkles className="w-6 h-6 text-[#087A9F] group-hover:text-white transition-colors" />
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-start gap-4 p-6 bg-white rounded-xl border border-[#D8EEF5] h-28 animate-pulse">
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-[#102833] mb-1 group-hover:text-[#087A9F] transition-colors">
-                    {app.name}
-                  </h3>
-                  <p className="text-sm text-[#102833]/60">
-                    {app.description}
-                  </p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-[#087A9F] opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
+              ))
+            ) : (
+              applications.slice(0, 6).map((app, index) => (
+                <Link
+                  key={app.id}
+                  href={`/catalogo?aplicacao=${app.slug}`}
+                  className="group flex items-start gap-4 p-6 bg-white rounded-xl border border-[#D8EEF5] hover:border-[#087A9F] transition-all card-hover animate-slide-up"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="w-12 h-12 rounded-lg bg-[#F4FBFD] flex items-center justify-center flex-shrink-0 group-hover:bg-[#087A9F] transition-colors">
+                    <Sparkles className="w-6 h-6 text-[#087A9F] group-hover:text-white transition-colors" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-[#102833] mb-1 group-hover:text-[#087A9F] transition-colors">
+                      {app.name}
+                    </h3>
+                    <p className="text-sm text-[#102833]/60">
+                      {app.description}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-[#087A9F] opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -160,15 +260,29 @@ export default function HomePage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product, index) => (
-              <div
-                key={product.id}
-                className="animate-slide-up"
-                style={{ animationDelay: `${index * 75}ms` }}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-[#D8EEF5] h-80 animate-pulse">
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-4">
+                    <div className="h-3 bg-gray-200 rounded w-1/4 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              featuredProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 75}ms` }}
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))
+            )}
           </div>
 
           <div className="mt-8 text-center">

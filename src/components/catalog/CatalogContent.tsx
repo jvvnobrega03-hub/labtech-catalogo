@@ -3,9 +3,7 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react';
-import { categories, applications, brands, segments } from '@/data/mock';
-import { products } from '@/data/mock';
-import { filterProducts } from '@/lib/search';
+import { getProducts, getCategories, getApplications, getBrands, getSegments } from '@/lib/products';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -16,9 +14,71 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Drawer } from '@/components/ui/Drawer';
 import { EmptyState } from '@/components/ui/EmptyState';
 
+// Tipos para dados do banco
+interface DbCategory {
+  id: string;
+  name: string;
+  slug: string;
+  short_name: string | null;
+  description: string | null;
+  icon: string | null;
+}
+
+interface DbApplication {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface DbBrand {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+}
+
+interface DbSegment {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface DbProduct {
+  id: string;
+  slug: string;
+  name: string;
+  reference: string;
+  short_description: string | null;
+  description: string | null;
+  category_id: string | null;
+  brand_id: string | null;
+  is_featured: boolean;
+  is_new: boolean;
+  availability: string;
+  stock_quantity: number;
+  minimum_stock: number;
+  is_consult_only: boolean;
+  main_image_url: string | null;
+  gallery_urls: string[];
+  keywords: string[];
+  created_at: string;
+  category?: DbCategory;
+  brand?: DbBrand;
+  segments?: { segment: DbSegment }[];
+  applications?: { application: DbApplication }[];
+}
+
 function CatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Estados para dados do banco
+  const [categories, setCategories] = useState<DbCategory[]>([]);
+  const [applications, setApplications] = useState<DbApplication[]>([]);
+  const [brands, setBrands] = useState<DbBrand[]>([]);
+  const [segments, setSegments] = useState<DbSegment[]>([]);
+  const [products, setProducts] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState(searchParams.get('busca') || '');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
@@ -38,6 +98,32 @@ function CatalogContent() {
     brand: false,
   });
 
+  // Carregar dados do Supabase
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [catsData, appsData, brdsData, segsData, prodsData] = await Promise.all([
+          getCategories(),
+          getApplications(),
+          getBrands(),
+          getSegments(),
+          getProducts()
+        ]);
+
+        setCategories(catsData as DbCategory[]);
+        setApplications(appsData as DbApplication[]);
+        setBrands(brdsData as DbBrand[]);
+        setSegments(segsData as DbSegment[]);
+        setProducts(prodsData.products);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
@@ -49,17 +135,64 @@ function CatalogContent() {
     router.replace(newUrl, { scroll: false });
   }, [search, selectedCategories, selectedApplications, router]);
 
+  // Filtrar produtos com dados do banco
   const filteredProducts = useMemo(() => {
-    return filterProducts(products, {
-      search,
-      categories: selectedCategories,
-      applications: selectedApplications,
-      segments: selectedSegments as any[],
-      brands: selectedBrands,
-      availability: [],
-      sort: sort as any,
-    });
-  }, [search, selectedCategories, selectedApplications, selectedSegments, selectedBrands, sort]);
+    let result = [...products];
+
+    // Filtro por busca
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(searchLower) ||
+        p.reference.toLowerCase().includes(searchLower) ||
+        p.short_description?.toLowerCase().includes(searchLower) ||
+        p.keywords?.some(k => k.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Filtro por categoria (usando slug da categoria)
+    if (selectedCategories.length > 0) {
+      result = result.filter(p =>
+        p.category && selectedCategories.includes(p.category.slug)
+      );
+    }
+
+    // Filtro por aplicação
+    if (selectedApplications.length > 0) {
+      result = result.filter(p =>
+        p.applications?.some(app => selectedApplications.includes(app.application?.slug))
+      );
+    }
+
+    // Filtro por segmento
+    if (selectedSegments.length > 0) {
+      result = result.filter(p =>
+        p.segments?.some(seg => selectedSegments.includes(seg.segment?.id))
+      );
+    }
+
+    // Filtro por marca (usando slug da marca)
+    if (selectedBrands.length > 0) {
+      result = result.filter(p =>
+        p.brand && selectedBrands.includes(p.brand.slug)
+      );
+    }
+
+    // Ordenação
+    switch (sort) {
+      case 'name-asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+    }
+
+    return result;
+  }, [products, search, selectedCategories, selectedApplications, selectedSegments, selectedBrands, sort]);
 
   const toggleFilter = (
     value: string,
@@ -173,10 +306,10 @@ function CatalogContent() {
           <div className="space-y-2 pt-2 max-h-48 overflow-y-auto custom-scrollbar">
             {brands.map((brand) => (
               <Checkbox
-                key={brand}
-                label={brand}
-                checked={selectedBrands.includes(brand)}
-                onChange={() => toggleFilter(brand, selectedBrands, setSelectedBrands)}
+                key={brand.id}
+                label={brand.name}
+                checked={selectedBrands.includes(brand.slug)}
+                onChange={() => toggleFilter(brand.slug, selectedBrands, setSelectedBrands)}
               />
             ))}
           </div>
@@ -277,49 +410,60 @@ function CatalogContent() {
         )}
 
         {/* Results Count */}
-        <p className="text-sm text-[#102833]/60 mb-6">
-          {filteredProducts.length} produto{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
-        </p>
-
-        <div className="flex gap-8">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-24 bg-white rounded-xl border border-[#D8EEF5] p-6">
-              <h2 className="text-lg font-semibold text-[#102833] mb-4">Filtros</h2>
-              <FilterContent />
-              {activeFiltersCount > 0 && (
-                <Button
-                  variant="ghost"
-                  fullWidth
-                  className="mt-4"
-                  onClick={clearFilters}
-                >
-                  Limpar todos os filtros
-                </Button>
-              )}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="w-10 h-10 border-4 border-[#087A9F] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-[#102833]/60">Carregando produtos...</p>
             </div>
-          </aside>
-
-          {/* Products Grid */}
-          <div className="flex-1">
-            {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="Nenhum produto encontrado"
-                description="Tente ajustar os filtros ou buscar por outro termo"
-                action={{
-                  label: 'Limpar filtros',
-                  onClick: clearFilters,
-                }}
-              />
-            )}
           </div>
-        </div>
+        ) : (
+          <>
+            <p className="text-sm text-[#102833]/60 mb-6">
+              {filteredProducts.length} produto{filteredProducts.length !== 1 ? 's' : ''} encontrado{filteredProducts.length !== 1 ? 's' : ''}
+            </p>
+
+            <div className="flex gap-8">
+              {/* Desktop Sidebar */}
+              <aside className="hidden lg:block w-64 flex-shrink-0">
+                <div className="sticky top-24 bg-white rounded-xl border border-[#D8EEF5] p-6">
+                  <h2 className="text-lg font-semibold text-[#102833] mb-4">Filtros</h2>
+                  <FilterContent />
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      fullWidth
+                      className="mt-4"
+                      onClick={clearFilters}
+                    >
+                      Limpar todos os filtros
+                    </Button>
+                  )}
+                </div>
+              </aside>
+
+              {/* Products Grid */}
+              <div className="flex-1">
+                {filteredProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhum produto encontrado"
+                    description="Tente ajustar os filtros ou buscar por outro termo"
+                    action={{
+                      label: 'Limpar filtros',
+                      onClick: clearFilters,
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Mobile Filters Drawer */}
