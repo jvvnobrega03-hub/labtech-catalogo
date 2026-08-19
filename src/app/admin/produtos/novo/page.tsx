@@ -74,6 +74,7 @@ export default function NewProductPage() {
     try {
       const slug = generateSlug(formData.name);
       const { data: product, error } = await supabase.from('products').insert({
+        id: crypto.randomUUID(),
         name: formData.name,
         slug,
         reference: formData.reference,
