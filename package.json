@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node -e \"const fs=require('fs');const p=require('path');function c(s,d){if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true});fs.readdirSync(s).forEach(f=>{const sp=p.join(s,f),dp=p.join(d,f);fs.statSync(sp).isDirectory()?c(sp,dp):fs.copyFileSync(sp,dp)})};fs.existsSync('.next/static')&&c('.next/static','.next/standalone/.next/static');fs.existsSync('.next/BUILD_ID')&&fs.copyFileSync('.next/BUILD_ID','.next/standalone/.next/BUILD_ID')\"",
     "start": "next start",
     "lint": "eslint"
   },
