@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const ADMIN_EMAIL = process.env.ADMIN_APPROVAL_EMAIL || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'LABTECH <naoresponda@labtech.com.br>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -39,6 +37,8 @@ export async function sendNewCustomerNotification(
     console.error('ADMIN_APPROVAL_EMAIL não configurado');
     return { success: false, error: 'E-mail do responsável não configurado' };
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const approveUrl = `${APP_URL}/aprovacao?token=${approvalToken}&action=approve`;
   const rejectUrl = `${APP_URL}/aprovacao?token=${approvalToken}&action=reject`;
@@ -231,6 +231,7 @@ export async function sendNewCustomerNotification(
 export async function sendCustomerApprovalEmail(
   customer: CustomerData
 ): Promise<ApprovalResult> {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const loginUrl = `${APP_URL}/login`;
 
   const htmlContent = `
@@ -325,6 +326,7 @@ export async function sendCustomerRejectionEmail(
   customer: CustomerData,
   reason?: string
 ): Promise<ApprovalResult> {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const htmlContent = `
 <!DOCTYPE html>
 <html>
