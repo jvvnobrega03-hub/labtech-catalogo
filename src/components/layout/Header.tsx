@@ -86,7 +86,7 @@ export function Header({ onSearch }: HeaderProps) {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
               {navItems.map((item) => (
                 <Link
                   key={item.label}
@@ -119,6 +119,21 @@ export function Header({ onSearch }: HeaderProps) {
                   </button>
                 </div>
               </form>
+
+              <div className="hidden lg:flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-lg border border-[#087A9F] px-4 py-2 text-sm font-medium text-[#087A9F] transition-colors hover:bg-[#F4FBFD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/cadastro"
+                  className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                >
+                  Cadastre-se
+                </Link>
+              </div>
 
               {/* Mobile Search Toggle */}
               <button
@@ -189,7 +204,23 @@ export function Header({ onSearch }: HeaderProps) {
                 {item.label}
               </Link>
             ))}
-            <div className="mt-6">
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-[#087A9F] px-4 py-3 text-sm font-medium text-[#087A9F] transition-colors hover:bg-[#F4FBFD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+              >
+                Entrar
+              </Link>
+              <Link
+                href="/cadastro"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+              >
+                Cadastre-se
+              </Link>
+            </div>
+            <div className="mt-3">
               <Button
                 variant="outline"
                 fullWidth
