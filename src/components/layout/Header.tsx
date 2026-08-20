@@ -64,8 +64,8 @@ export function Header({ onSearch }: HeaderProps) {
       <header
         className={`sticky top-0 z-30 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-sm'
-            : 'bg-white'
+            ? 'bg-[#071018]/95 backdrop-blur-md shadow-sm'
+            : 'bg-[#071018]'
         }`}
       >
         <div className="max-w-[1400px] mx-auto px-4">
@@ -76,10 +76,10 @@ export function Header({ onSearch }: HeaderProps) {
                 <span className="text-white font-bold text-lg md:text-xl">L</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl md:text-2xl font-extrabold text-[#071018] tracking-tight">
+                <span className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
                   LABTECH
                 </span>
-                <span className="text-[10px] md:text-xs text-[#087A9F] font-semibold uppercase tracking-widest">
+                <span className="text-[10px] md:text-xs text-[#27C7FF] font-semibold uppercase tracking-widest">
                   Produtos laboratoriais
                 </span>
               </div>
@@ -91,10 +91,10 @@ export function Header({ onSearch }: HeaderProps) {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="text-sm font-medium text-[#102833] hover:text-[#087A9F] transition-colors relative group"
+                  className="text-sm font-medium text-white/80 hover:text-[#27C7FF] transition-colors relative group"
                 >
                   {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#087A9F] transition-all group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#27C7FF] transition-all group-hover:w-full" />
                 </Link>
               ))}
             </nav>
@@ -109,11 +109,11 @@ export function Header({ onSearch }: HeaderProps) {
                     placeholder="Buscar produtos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-48 lg:w-64 pl-4 pr-10 py-2 rounded-lg border border-[#D8EEF5] bg-[#F4FBFD] text-sm focus:outline-none focus:border-[#087A9F] focus:w-72 lg:focus:w-80 transition-all"
+                    className="w-48 lg:w-64 pl-4 pr-10 py-2 rounded-lg border border-[#1B3A4B] bg-[#0A1520] text-white text-sm placeholder:text-white/50 focus:outline-none focus:border-[#27C7FF] focus:w-72 lg:focus:w-80 transition-all"
                   />
                   <button
                     type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#087A9F] hover:text-[#0796C4]"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#27C7FF] hover:text-white"
                   >
                     <Search className="w-4 h-4" />
                   </button>
@@ -123,7 +123,7 @@ export function Header({ onSearch }: HeaderProps) {
               <div className="hidden lg:flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center rounded-lg border border-[#087A9F] px-4 py-2 text-sm font-medium text-[#087A9F] transition-colors hover:bg-[#F4FBFD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                  className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-2 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
                 >
                   Entrar
                 </Link>
@@ -138,7 +138,7 @@ export function Header({ onSearch }: HeaderProps) {
               {/* Mobile Search Toggle */}
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="md:hidden p-2 text-[#102833] hover:text-[#087A9F]"
+                className="md:hidden p-2 text-white hover:text-[#27C7FF]"
                 aria-label="Buscar"
               >
                 <Search className="w-5 h-5" />
@@ -163,7 +163,7 @@ export function Header({ onSearch }: HeaderProps) {
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 text-[#102833] hover:text-[#087A9F]"
+                className="lg:hidden p-2 text-white hover:text-[#27C7FF]"
                 aria-label="Menu"
               >
                 {isMobileMenuOpen ? (
@@ -178,7 +178,7 @@ export function Header({ onSearch }: HeaderProps) {
 
         {/* Mobile Search Bar */}
         {isSearchOpen && (
-          <div className="md:hidden border-t border-[#D8EEF5] p-4 bg-white animate-slide-up">
+          <div className="md:hidden border-t border-[#1B3A4B] p-4 bg-[#071018] animate-slide-up">
             <SearchInput
               placeholder="Buscar produtos, referências, categorias..."
               value={searchQuery}
@@ -192,14 +192,14 @@ export function Header({ onSearch }: HeaderProps) {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-[88px] md:top-[100px] z-20 bg-white animate-slide-up">
+        <div className="lg:hidden fixed inset-0 top-[88px] md:top-[100px] z-20 bg-[#071018] animate-slide-up">
           <nav className="flex flex-col p-4">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="py-4 text-lg font-medium text-[#102833] border-b border-[#D8EEF5] hover:text-[#087A9F] transition-colors"
+                className="py-4 text-lg font-medium text-white border-b border-[#1B3A4B] hover:text-[#27C7FF] transition-colors"
               >
                 {item.label}
               </Link>
@@ -208,7 +208,7 @@ export function Header({ onSearch }: HeaderProps) {
               <Link
                 href="/login"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex items-center justify-center rounded-lg border border-[#087A9F] px-4 py-3 text-sm font-medium text-[#087A9F] transition-colors hover:bg-[#F4FBFD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-3 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
               >
                 Entrar
               </Link>

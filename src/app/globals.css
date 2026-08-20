@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  /* LABTECH Colors - Design System */
+  /* LABTECH Colors - Design System DARK */
   --color-labtech-navy: #087A9F;
   --color-labtech-deep: #071018;
-  --color-labtech-ink: #102833;
+  --color-labtech-ink: #0A1520;
   --color-labtech-teal: #0796C4;
   --color-labtech-cyan: #27C7FF;
   --color-labtech-mint: #74DCFF;
-  --color-labtech-mist: #F4FBFD;
-  --color-labtech-paper: #FFFFFF;
-  --color-labtech-line: #D8EEF5;
+  --color-labtech-mist: #0D1B2A;
+  --color-labtech-paper: #0D1B2A;
+  --color-labtech-line: #1B3A4B;
   --color-labtech-focus: #0AA6D2;
 
-  /* Semantic tokens */
-  --color-background: var(--color-labtech-paper);
-  --color-foreground: var(--color-labtech-deep);
+  /* Semantic tokens - DARK MODE */
+  --color-background: var(--color-labtech-deep);
+  --color-foreground: #E0F4FF;
   --color-accent: var(--color-labtech-teal);
-  --color-surface: var(--color-labtech-mist);
-  --color-muted: var(--color-labtech-ink);
+  --color-surface: var(--color-labtech-ink);
+  --color-muted: #8BB4C9;
   --color-border: var(--color-labtech-line);
-  --color-card: var(--color-labtech-paper);
-  --color-dark: var(--color-labtech-deep);
+  --color-card: #0A1520;
+  --color-dark: #050A0F;
   --color-cyan: var(--color-labtech-cyan);
   --color-success: #10B981;
   --color-warning: #F59E0B;
@@ -33,6 +33,77 @@
   /* Spacing */
   --spacing-section: 5rem;
   --spacing-container: 80rem;
+}
+
+/* ============================================
+   FORÇAR TEMA DARK GLOBAL
+   ============================================ */
+
+/* Substituir cores claras por escuras */
+body {
+  background-color: #071018 !important;
+  color: #E0F4FF !important;
+}
+
+/* Elementos brancos -> escuros */
+.bg-white {
+  background-color: #0A1520 !important;
+}
+
+.bg-gray-50 {
+  background-color: #0A1520 !important;
+}
+
+.bg-gray-100 {
+  background-color: #0D1B2A !important;
+}
+
+.bg-gray-200 {
+  background-color: #1B3A4B !important;
+}
+
+/* Textos escuros -> claros */
+.text-gray-900,
+.text-gray-800 {
+  color: #E0F4FF !important;
+}
+
+.text-gray-700 {
+  color: #CBD5E1 !important;
+}
+
+.text-gray-600 {
+  color: #94A3B8 !important;
+}
+
+.text-gray-500 {
+  color: #8BB4C9 !important;
+}
+
+/* Bordas claras -> escuras */
+.border-gray-200,
+.border-gray-300 {
+  border-color: #1B3A4B !important;
+}
+
+/* Inputs e forms */
+input, textarea, select {
+  background-color: #0A1520 !important;
+  color: #E0F4FF !important;
+  border-color: #1B3A4B !important;
+}
+
+input::placeholder {
+  color: #8BB4C9 !important;
+}
+
+/* Cards */
+.bg-white.rounded,
+.rounded-xl,
+.rounded-lg,
+.rounded-2xl {
+  background-color: #0A1520 !important;
+  border: 1px solid #1B3A4B;
 }
 
 @layer base {
