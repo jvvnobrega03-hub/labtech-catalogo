@@ -108,7 +108,7 @@ export default function CustomersPage() {
   const pendingCount = customers.filter(c => c.status === 'PENDING').length;
 
   async function handleApprove(customer: CustomerProfile) {
-    if (!confirm(`Desejaaprovar o cadastro de ${customer.representative_name} / ${customer.company_name}?`)) {
+    if (!confirm(`Deseja aprovar o cadastro de ${customer.representative_name} / ${customer.company_name}?`)) {
       return;
     }
 
@@ -120,14 +120,22 @@ export default function CustomersPage() {
           status: 'APPROVED',
           approved_at: new Date().toISOString(),
           approved_by: user?.id,
+          approval_method: 'ADMIN',
         })
         .eq('id', customer.id);
 
       if (error) throw error;
 
+      // Enviar e-mail de aprovação para o cliente
+      await fetch('/api/customer/send-approval-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: customer.id }),
+      }).catch(err => console.error('Erro ao enviar e-mail:', err));
+
       await loadCustomers();
       setSelectedCustomer(null);
-      alert('Cliente aprovado com sucesso!');
+      alert('Cliente aprovado com sucesso! E-mail de confirmação enviado ao cliente.');
     } catch (error) {
       console.error('Erro ao aprovar:', error);
       alert('Erro ao aprobar cliente.');

@@ -247,7 +247,7 @@ export default function RegisterPage() {
       }
 
       // 3. Criar perfil do cliente
-      const { error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('customer_profiles')
         .insert({
           auth_user_id: authData.user.id,
@@ -267,12 +267,23 @@ export default function RegisterPage() {
           phone: onlyNumbers(formData.phone),
           email: formData.email.toLowerCase().trim(),
           status: 'PENDING',
-        });
+        })
+        .select('id')
+        .single();
 
       if (profileError) {
         // Deletar usuário auth se falhar
         await supabase.auth.admin.deleteUser(authData.user.id);
         throw profileError;
+      }
+
+      // 4. Enviar notificação ao admin (em background, não bloqueia o sucesso)
+      if (profileData?.id) {
+        fetch('/api/customer/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerId: profileData.id }),
+        }).catch(err => console.error('Erro ao enviar notificação:', err));
       }
 
       setSuccess(true);
