@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+# /.next/ - temporariamente desabilitado para deploy na Hostinger
 /out/
 
 # production

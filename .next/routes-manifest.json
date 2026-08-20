@@ -1,0 +1,260 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "onMatchHeaders": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/admin/produtos/[id]/editar",
+      "regex": "^/admin/produtos/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/admin/produtos/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    },
+    {
+      "page": "/produto/[slug]",
+      "regex": "^/produto/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/produto/(?<nxtPslug>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/aplicacoes",
+      "regex": "^/admin/aplicacoes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/aplicacoes(?:/)?$"
+    },
+    {
+      "page": "/admin/categorias",
+      "regex": "^/admin/categorias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/categorias(?:/)?$"
+    },
+    {
+      "page": "/admin/clientes",
+      "regex": "^/admin/clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/clientes(?:/)?$"
+    },
+    {
+      "page": "/admin/login",
+      "regex": "^/admin/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/login(?:/)?$"
+    },
+    {
+      "page": "/admin/marcas",
+      "regex": "^/admin/marcas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/marcas(?:/)?$"
+    },
+    {
+      "page": "/admin/produtos",
+      "regex": "^/admin/produtos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/produtos(?:/)?$"
+    },
+    {
+      "page": "/admin/produtos/novo",
+      "regex": "^/admin/produtos/novo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/produtos/novo(?:/)?$"
+    },
+    {
+      "page": "/admin/segmentos",
+      "regex": "^/admin/segmentos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/segmentos(?:/)?$"
+    },
+    {
+      "page": "/api/approval/confirm",
+      "regex": "^/api/approval/confirm(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/approval/confirm(?:/)?$"
+    },
+    {
+      "page": "/api/approval/validate",
+      "regex": "^/api/approval/validate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/approval/validate(?:/)?$"
+    },
+    {
+      "page": "/api/cep",
+      "regex": "^/api/cep(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cep(?:/)?$"
+    },
+    {
+      "page": "/api/customer/check",
+      "regex": "^/api/customer/check(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/customer/check(?:/)?$"
+    },
+    {
+      "page": "/api/customer/notify-admin",
+      "regex": "^/api/customer/notify\\-admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/customer/notify\\-admin(?:/)?$"
+    },
+    {
+      "page": "/api/customer/send-approval-email",
+      "regex": "^/api/customer/send\\-approval\\-email(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/customer/send\\-approval\\-email(?:/)?$"
+    },
+    {
+      "page": "/api/magis5",
+      "regex": "^/api/magis5(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/magis5(?:/)?$"
+    },
+    {
+      "page": "/api/magis5/invoices",
+      "regex": "^/api/magis5/invoices(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/magis5/invoices(?:/)?$"
+    },
+    {
+      "page": "/api/magis5/orders",
+      "regex": "^/api/magis5/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/magis5/orders(?:/)?$"
+    },
+    {
+      "page": "/api/magis5/products",
+      "regex": "^/api/magis5/products(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/magis5/products(?:/)?$"
+    },
+    {
+      "page": "/api/magis5/stock",
+      "regex": "^/api/magis5/stock(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/magis5/stock(?:/)?$"
+    },
+    {
+      "page": "/aplicacoes",
+      "regex": "^/aplicacoes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/aplicacoes(?:/)?$"
+    },
+    {
+      "page": "/aprovacao",
+      "regex": "^/aprovacao(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/aprovacao(?:/)?$"
+    },
+    {
+      "page": "/cadastro",
+      "regex": "^/cadastro(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cadastro(?:/)?$"
+    },
+    {
+      "page": "/catalogo",
+      "regex": "^/catalogo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/catalogo(?:/)?$"
+    },
+    {
+      "page": "/cliente",
+      "regex": "^/cliente(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cliente(?:/)?$"
+    },
+    {
+      "page": "/cliente/perfil",
+      "regex": "^/cliente/perfil(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cliente/perfil(?:/)?$"
+    },
+    {
+      "page": "/cotacao",
+      "regex": "^/cotacao(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cotacao(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/veterinario",
+      "regex": "^/veterinario(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/veterinario(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

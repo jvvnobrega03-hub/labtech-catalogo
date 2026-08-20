@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/magis5/orders/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"E:\\Projetos JV\\Labtech.com.br\\labtech-catalogo\\src\\app\\api\\magis5\\orders\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};
