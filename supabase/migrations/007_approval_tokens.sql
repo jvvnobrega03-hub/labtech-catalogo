@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS approval_tokens (
 );
 
 -- Índices
-CREATE INDEX IF NOT idx_approval_tokens_customer ON approval_tokens(customer_id);
-CREATE INDEX IF NOT idx_approval_tokens_token_hash ON approval_tokens(token_hash);
-CREATE INDEX IF NOT idx_approval_tokens_expires ON approval_tokens(expires_at) WHERE used_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_approval_tokens_customer ON approval_tokens(customer_id);
+CREATE INDEX IF NOT EXISTS idx_approval_tokens_token_hash ON approval_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_approval_tokens_expires ON approval_tokens(expires_at) WHERE used_at IS NULL;
 
 -- Adicionar campos de notificação na tabela de clientes
 ALTER TABLE customer_profiles ADD COLUMN IF NOT EXISTS approval_notification_sent_at TIMESTAMPTZ;
