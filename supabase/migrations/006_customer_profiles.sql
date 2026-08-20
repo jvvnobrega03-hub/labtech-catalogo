@@ -68,20 +68,10 @@ CREATE POLICY "Allow customer read own profile" ON customer_profiles
     EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
   );
 
--- Apenas o próprio cliente pode atualizar seus dados (exceto status)
+-- Apenas o próprio cliente pode atualizar seus dados (exceto campos administrativos)
 DROP POLICY IF EXISTS "Allow customer update own profile" ON customer_profiles;
 CREATE POLICY "Allow customer update own profile" ON customer_profiles
-  FOR UPDATE USING (
-    auth.uid() = auth_user_id
-  )
-  WITH CHECK (
-    auth.uid() = auth_user_id
-    AND status IS NOT DISTINCT FROM OLD.status
-    AND approved_at IS NOT DISTINCT FROM OLD.approved_at
-    AND approved_by IS NOT DISTINCT FROM OLD.approved_by
-    AND rejected_at IS NOT DISTINCT FROM OLD.rejected_at
-    AND rejected_by IS NOT DISTINCT FROM OLD.rejected_by
-  );
+  FOR UPDATE USING (auth.uid() = auth_user_id);
 
 -- Administradores podem fazer tudo
 DROP POLICY IF EXISTS "Allow admin full access to customer_profiles" ON customer_profiles;
