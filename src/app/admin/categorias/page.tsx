@@ -106,9 +106,9 @@ export default function CategoriesPage() {
 
       await loadCategories();
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar categoria');
+      alert(error?.message || 'Erro ao salvar categoria');
     } finally {
       setSaving(false);
     }
