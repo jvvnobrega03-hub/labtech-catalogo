@@ -54,7 +54,7 @@ export default function BrandsPage() {
         const { error } = await supabase.from('brands').update(formData).eq('id', editingBrand.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('brands').insert(formData);
+        const { error } = await supabase.from('brands').insert({ id: crypto.randomUUID(), ...formData });
         if (error) throw error;
       }
       await loadBrands();

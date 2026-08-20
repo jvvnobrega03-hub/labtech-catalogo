@@ -60,7 +60,7 @@ export default function ApplicationsPage() {
       if (editingApp) {
         await supabase.from('applications').update(appForm).eq('id', editingApp.id);
       } else {
-        await supabase.from('applications').insert(appForm);
+        await supabase.from('applications').insert({ id: crypto.randomUUID(), ...appForm });
       }
       await loadData();
       closeAppModal();

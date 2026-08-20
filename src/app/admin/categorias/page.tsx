@@ -91,6 +91,7 @@ export default function CategoriesPage() {
         const { error } = await supabase
           .from('categories')
           .insert({
+            id: crypto.randomUUID(),
             name: formData.name,
             slug: formData.slug,
             description: formData.description,

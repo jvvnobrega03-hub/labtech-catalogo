@@ -86,6 +86,7 @@ export default function SegmentsPage() {
         const { error } = await supabase
           .from('segments')
           .insert({
+            id: crypto.randomUUID(),
             name: formData.name,
             slug: formData.slug,
             description: formData.description,
