@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS customer_profiles (
 
   -- Dados do representante
   representative_name VARCHAR(255) NOT NULL,
-  position VARCHAR(100) NOT NULL,
+  "position" VARCHAR(100) NOT NULL,
   document VARCHAR(20) UNIQUE NOT NULL,
   document_type VARCHAR(10) NOT NULL CHECK (document_type IN ('CPF', 'CNPJ')),
 
@@ -17,10 +17,10 @@ CREATE TABLE IF NOT EXISTS customer_profiles (
   -- Endereço
   postal_code VARCHAR(10),
   street VARCHAR(255),
-  number VARCHAR(20),
+  "number" VARCHAR(20),
   neighborhood VARCHAR(100),
   city VARCHAR(100),
-  state VARCHAR(2),
+  "state" VARCHAR(2),
   complement VARCHAR(255),
   reference_point VARCHAR(255),
 
@@ -95,7 +95,7 @@ CREATE OR REPLACE FUNCTION get_customer_profile()
 RETURNS TABLE (
   id UUID,
   representative_name VARCHAR,
-  position VARCHAR,
+  "position" VARCHAR,
   document VARCHAR,
   document_type VARCHAR,
   company_name VARCHAR,
@@ -103,10 +103,10 @@ RETURNS TABLE (
   email VARCHAR,
   postal_code VARCHAR,
   street VARCHAR,
-  number VARCHAR,
+  "number" VARCHAR,
   neighborhood VARCHAR,
   city VARCHAR,
-  state VARCHAR,
+  "state" VARCHAR,
   complement VARCHAR,
   reference_point VARCHAR,
   status VARCHAR,
@@ -118,7 +118,7 @@ BEGIN
   SELECT
     cp.id,
     cp.representative_name,
-    cp.position,
+    cp."position",
     cp.document,
     cp.document_type,
     cp.company_name,
@@ -126,10 +126,10 @@ BEGIN
     cp.email,
     cp.postal_code,
     cp.street,
-    cp.number,
+    cp."number",
     cp.neighborhood,
     cp.city,
-    cp.state,
+    cp."state",
     cp.complement,
     cp.reference_point,
     cp.status,
