@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendNewCustomerNotification, sendCustomerApprovalEmail } from '@/lib/email';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { sendNewCustomerNotification } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ success: false, error: 'Configuração do servidor incompleta' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { customerId } = await request.json();
 
     if (!customerId) {
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
           customer_id: customer.id,
           token_hash: approvalTokenHash,
           action: 'APPROVE',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
           customer_id: customer.id,
@@ -103,6 +107,15 @@ export async function POST(request: NextRequest) {
 // Handler para reenviar notificação
 export async function PUT(request: NextRequest) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ success: false, error: 'Configuração do servidor incompleta' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { customerId } = await request.json();
 
     if (!customerId) {
@@ -136,35 +149,18 @@ export async function PUT(request: NextRequest) {
     // Gerar novos tokens se necessário
     const crypto = require('crypto');
     const generateToken = () => crypto.randomBytes(32).toString('hex');
-    let approvalToken = '';
+    let approvalToken = generateToken();
 
-    if (!existingTokens || existingTokens.length === 0) {
-      approvalToken = generateToken();
-      const approvalTokenHash = crypto.createHash('sha256').update(approvalToken).digest('hex');
+    const approvalTokenHash = crypto.createHash('sha256').update(approvalToken).digest('hex');
 
-      await supabase
-        .from('approval_tokens')
-        .insert({
-          customer_id: customer.id,
-          token_hash: approvalTokenHash,
-          action: 'APPROVE',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-    } else {
-      // Buscar o token existente (precisaríamos recuperar de alguma forma)
-      // Por segurança, vamos criar um novo token
-      approvalToken = generateToken();
-      const approvalTokenHash = crypto.createHash('sha256').update(approvalToken).digest('hex');
-
-      await supabase
-        .from('approval_tokens')
-        .insert({
-          customer_id: customer.id,
-          token_hash: approvalTokenHash,
-          action: 'APPROVE',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-    }
+    await supabase
+      .from('approval_tokens')
+      .insert({
+        customer_id: customer.id,
+        token_hash: approvalTokenHash,
+        action: 'APPROVE',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
 
     // Enviar e-mail para o admin
     const emailResult = await sendNewCustomerNotification(customer, approvalToken);
