@@ -46,7 +46,8 @@ body {
 }
 
 /* Elementos brancos -> escuros */
-.bg-white {
+.bg-white,
+[class*="bg-white"] {
   background-color: #0A1520 !important;
 }
 
@@ -62,27 +63,67 @@ body {
   background-color: #1B3A4B !important;
 }
 
-/* Textos escuros -> claros */
+.bg-gray-300 {
+  background-color: #1B3A4B !important;
+}
+
+/* Textos escuros -> claros - FORÇA TODOS OS TEXTOS */
+p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, label, a {
+  color: inherit;
+}
+
+/* Textos específicos do Tailwind - FORÇA TODOS OS TEXTOS ESCUROS PARA CLARO */
 .text-gray-900,
-.text-gray-800 {
+.text-gray-800,
+.text-gray-700,
+.text-gray-600,
+.text-gray-500,
+.text-gray-400,
+.text-\[\#102833\],
+.text-\[\#071018\],
+.text-\[\#1a1a1a\],
+.text-\[\#000\],
+.text-\[\#333\],
+.text-\[\#444\],
+.text-\[\#1E3A5F\] {
   color: #E0F4FF !important;
 }
 
-.text-gray-700 {
-  color: #CBD5E1 !important;
+/* Links e textos interativos */
+a:not([class*="text-\["]) {
+  color: #27C7FF !important;
 }
 
-.text-gray-600 {
-  color: #94A3B8 !important;
+/* Correções específicas do projeto */
+.border-\[\#D8EEF5\],
+.border-\[1px_solid_\#D8EEF5\] {
+  border-color: #1B3A4B !important;
 }
 
-.text-gray-500 {
-  color: #8BB4C9 !important;
+/* Manter cores de destaque */
+.text-\[\#087A9F\],
+.text-\[\#0796C4\],
+.text-\[\#27C7FF\],
+.text-blue-600,
+.text-blue-500 {
+  color: #27C7FF !important;
+}
+
+.text-green-600,
+.text-green-700 {
+  color: #10B981 !important;
+}
+
+.text-red-600,
+.text-red-700 {
+  color: #EF4444 !important;
 }
 
 /* Bordas claras -> escuras */
 .border-gray-200,
-.border-gray-300 {
+.border-gray-300,
+.border-gray-400,
+.border-\[\#D8EEF5\] {
   border-color: #1B3A4B !important;
 }
 
@@ -98,10 +139,9 @@ input::placeholder {
 }
 
 /* Cards */
-.bg-white.rounded,
-.rounded-xl,
-.rounded-lg,
-.rounded-2xl {
+[class*="rounded"],
+[class*="card"],
+section[class*="bg-white"] {
   background-color: #0A1520 !important;
   border: 1px solid #1B3A4B;
 }
