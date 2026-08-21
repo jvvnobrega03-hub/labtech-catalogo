@@ -16,7 +16,9 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Plus
+  Plus,
+  Users,
+  UserPlus
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -77,6 +79,12 @@ export default function AdminDashboardPage() {
           .select('*', { count: 'exact', head: true })
           .eq('is_active', true);
 
+        // Contar cadastros pendentes
+        const { count: pendingRegistrations } = await supabase
+          .from('customer_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'PENDING');
+
         setStats({
           totalProducts: totalProducts || 0,
           activeProducts: activeProducts || 0,
@@ -87,6 +95,7 @@ export default function AdminDashboardPage() {
           totalSegments: totalSegments || 0,
           totalBrands: totalBrands || 0,
           totalApplications: totalApplications || 0,
+          pendingRegistrations: pendingRegistrations || 0,
         });
       } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
@@ -107,6 +116,14 @@ export default function AdminDashboardPage() {
   }
 
   const statCards = [
+    {
+      title: 'Cadastros Pendentes',
+      value: stats?.pendingRegistrations || 0,
+      icon: UserPlus,
+      color: 'bg-yellow-500',
+      href: '/admin/clientes?status=PENDING',
+      highlight: (stats?.pendingRegistrations || 0) > 0,
+    },
     {
       title: 'Total de Produtos',
       value: stats?.totalProducts || 0,
@@ -204,12 +221,12 @@ export default function AdminDashboardPage() {
           <Link
             key={stat.title}
             href={stat.href}
-            className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow group"
+            className={`bg-white rounded-xl p-6 border hover:shadow-lg transition-shadow group ${stat.highlight ? 'border-yellow-400 ring-2 ring-yellow-400 ring-opacity-50' : 'border-gray-200'}`}
           >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                <p className={`text-3xl font-bold mt-1 ${stat.highlight ? 'text-yellow-600' : 'text-gray-900'}`}>{stat.value}</p>
               </div>
               <div className={`p-3 rounded-lg ${stat.color}`}>
                 <stat.icon className="w-6 h-6 text-white" />
@@ -224,10 +241,24 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Alerts section */}
-      {(stats?.outOfStock || stats?.lowStock) && (
+      {(stats?.pendingRegistrations || stats?.outOfStock || stats?.lowStock) && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Alertas</h2>
           <div className="space-y-3">
+            {stats.pendingRegistrations > 0 && (
+              <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                <UserPlus className="w-5 h-5 text-yellow-600" />
+                <span className="text-yellow-800">
+                  <strong>{stats.pendingRegistrations}</strong> cadastro(s) de cliente(s) pendente(s) de aprovação
+                </span>
+                <Link
+                  href="/admin/clientes?status=PENDING"
+                  className="ml-auto text-sm text-yellow-700 hover:underline font-medium"
+                >
+                  Ver cadastros →
+                </Link>
+              </div>
+            )}
             {stats.outOfStock > 0 && (
               <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-500" />

@@ -152,6 +152,7 @@ export interface DashboardStats {
   totalSegments: number;
   totalBrands: number;
   totalApplications: number;
+  pendingRegistrations: number;
 }
 
 // Status de estoque
