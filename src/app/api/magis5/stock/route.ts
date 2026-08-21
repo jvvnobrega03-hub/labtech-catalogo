@@ -3,12 +3,41 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 
 const supabase = getSupabaseClient();
 
+// Webhook secret para autenticar chamadas do Magis5
+const WEBHOOK_SECRET = process.env.MAGIS5_WEBHOOK_SECRET || 'dev-secret-change-in-production';
+
+/**
+ * Verifica se a requisição é autorizada
+ */
+function isAuthorized(request: Request): boolean {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader === `Bearer ${WEBHOOK_SECRET}`) {
+    return true;
+  }
+
+  const webhookKey = request.headers.get('x-webhook-key');
+  if (webhookKey === WEBHOOK_SECRET) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Callback de estoque do Magis5
  * Recebe notificações de alteração de estoque do ERP via Magis5
  */
 export async function POST(request: Request) {
   try {
+    // Verifica autorização
+    if (!isAuthorized(request)) {
+      console.warn('Unauthorized attempt to access magis5/stock API');
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // O formato pode variar - adaptamos para diferentes estruturas
@@ -107,6 +136,7 @@ export async function GET() {
     endpoint: 'magis5/stock',
     method: 'POST',
     description: 'Callback para sincronização de estoque do Magis5/ERP',
+    auth: 'Requer header Authorization: Bearer <MAGIS5_WEBHOOK_SECRET> ou x-webhook-key',
     expectedFormat: {
       json: {
         example: [

@@ -3,12 +3,44 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 
 const supabase = getSupabaseClient();
 
+// Webhook secret para autenticar chamadas do Magis5
+// Em produção, usar variável de ambiente MAGIS5_WEBHOOK_SECRET
+const WEBHOOK_SECRET = process.env.MAGIS5_WEBHOOK_SECRET || 'dev-secret-change-in-production';
+
+/**
+ * Verifica se a requisição é autorizada
+ */
+function isAuthorized(request: Request): boolean {
+  // 1. Primeiro verifica header de autorização
+  const authHeader = request.headers.get('authorization');
+  if (authHeader === `Bearer ${WEBHOOK_SECRET}`) {
+    return true;
+  }
+
+  // 2. Verifica header x-webhook-key
+  const webhookKey = request.headers.get('x-webhook-key');
+  if (webhookKey === WEBHOOK_SECRET) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Callback de pedidos do Magis5
  * Recebe notificações de alteração de situação de pedidos
  */
 export async function POST(request: Request) {
   try {
+    // Verifica autorização - apenas sistemas autorizados podem chamar
+    if (!isAuthorized(request)) {
+      console.warn('Unauthorized attempt to access magis5/orders API');
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Formatos possíveis:
@@ -143,6 +175,7 @@ export async function GET() {
     endpoint: 'magis5/orders',
     method: 'POST',
     description: 'Callback para sincronização de pedidos do Magis5/ERP',
+    auth: 'Requer header Authorization: Bearer <MAGIS5_WEBHOOK_SECRET> ou x-webhook-key',
     expectedFormat: {
       json: {
         example: {
