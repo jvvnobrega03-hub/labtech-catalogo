@@ -90,7 +90,7 @@ export default function ClientLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4FBFD] flex">
+    <div className="min-h-screen bg-[#071018] flex">
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
@@ -101,22 +101,22 @@ export default function ClientLoginPage() {
                 <span className="font-bold text-white text-xl">LT</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#102833]">LABTECH</h1>
-                <p className="text-sm text-[#102833]/60">Área Exclusiva</p>
+                <h1 className="text-2xl font-bold text-white">LABTECH</h1>
+                <p className="text-sm text-white/60">Área Exclusiva</p>
               </div>
             </Link>
           </div>
 
-          <h2 className="text-2xl font-bold text-[#102833] mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             Bem-vindo
           </h2>
-          <p className="text-[#102833]/60 mb-8">
+          <p className="text-white/60 mb-8">
             Entre com suas credenciais para acessar a área exclusiva
           </p>
 
           {/* Error message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-700">
+            <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg flex items-start gap-3 text-red-400">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -125,7 +125,7 @@ export default function ClientLoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#102833] mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
                 E-mail
               </label>
               <input
@@ -134,14 +134,14 @@ export default function ClientLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#087A9F] focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 border border-[#1B3A4B] bg-[#0A1520] text-white rounded-lg focus:ring-2 focus:ring-[#27C7FF] focus:border-transparent outline-none transition-all placeholder:text-white/40"
                 placeholder="seu@email.com.br"
                 autoComplete="email"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#102833] mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
                 Senha
               </label>
               <div className="relative">
@@ -151,14 +151,14 @@ export default function ClientLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#087A9F] focus:border-transparent outline-none transition-all pr-12"
+                  className="w-full px-4 py-3 border border-[#1B3A4B] bg-[#0A1520] text-white rounded-lg focus:ring-2 focus:ring-[#27C7FF] focus:border-transparent outline-none transition-all pr-12 placeholder:text-white/40"
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/60 hover:text-white"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -166,7 +166,7 @@ export default function ClientLoginPage() {
             </div>
 
             <div className="text-right">
-              <Link href="/recuperar-senha" className="text-sm text-[#087A9F] hover:underline">
+              <Link href="/recuperar-senha" className="text-sm text-[#27C7FF] hover:underline">
                 Esqueci minha senha
               </Link>
             </div>
@@ -189,13 +189,13 @@ export default function ClientLoginPage() {
 
           {/* Back to site */}
           <div className="mt-8 text-center space-y-2">
-            <Link href="/" className="flex items-center justify-center gap-2 text-sm text-[#087A9F] hover:underline">
+            <Link href="/" className="flex items-center justify-center gap-2 text-sm text-[#27C7FF] hover:underline">
               <ArrowLeft className="w-4 h-4" />
               Voltar para o site
             </Link>
-            <p className="text-sm text-[#102833]/60">
+            <p className="text-sm text-white/60">
               Não tem cadastro?{' '}
-              <Link href="/cadastro" className="text-[#087A9F] hover:underline font-medium">
+              <Link href="/cadastro" className="text-[#27C7FF] hover:underline font-medium">
                 Solicitar cadastro
               </Link>
             </p>
@@ -204,7 +204,7 @@ export default function ClientLoginPage() {
       </div>
 
       {/* Right side - Decorative */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#071018] to-[#102833] items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#071018] to-[#0A1520] items-center justify-center p-12">
         <div className="max-w-md text-center">
           <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-white/10 flex items-center justify-center">
             <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
