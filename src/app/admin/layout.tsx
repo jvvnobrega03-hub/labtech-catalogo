@@ -11,6 +11,8 @@ import {
   Bookmark,
   Factory,
   FlaskConical,
+  Ticket,
+  Wrench,
   ArrowLeftRight,
   LogOut,
   Menu,
@@ -20,11 +22,14 @@ import { useState } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Clientes', href: '/admin/clientes', icon: Ticket },
   { name: 'Produtos', href: '/admin/produtos', icon: Package },
   { name: 'Categorias', href: '/admin/categorias', icon: Tags },
   { name: 'Segmentos', href: '/admin/segmentos', icon: Bookmark },
   { name: 'Marcas', href: '/admin/marcas', icon: Factory },
   { name: 'Aplicações', href: '/admin/aplicacoes', icon: FlaskConical },
+  { name: 'Chamados', href: '/admin/chamados', icon: Ticket },
+  { name: 'Manutenções', href: '/admin/manutencoes', icon: Wrench },
 ];
 
 export default function AdminLayout({
