@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingCart, Menu, X, Phone, Mail } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, Phone, Mail, User, LogOut } from 'lucide-react';
 import { useQuote } from '@/providers/QuoteProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Button } from '@/components/ui/Button';
 
@@ -17,6 +18,7 @@ export function Header({ onSearch }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { itemCount, toggleDrawer } = useQuote();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -121,18 +123,32 @@ export function Header({ onSearch }: HeaderProps) {
               </form>
 
               <div className="hidden lg:flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-2 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
-                >
-                  Entrar
-                </Link>
-                <Link
-                  href="/cadastro"
-                  className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
-                >
-                  Cadastre-se
-                </Link>
+                {!authLoading && !user ? (
+                  <>
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-2 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                    >
+                      Entrar
+                    </Link>
+                    <Link
+                      href="/cadastro"
+                      className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                    >
+                      Cadastre-se
+                    </Link>
+                  </>
+                ) : !authLoading && user && (
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/cliente"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#27C7FF] hover:text-white transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      Minha Conta
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Mobile Search Toggle */}
@@ -205,20 +221,33 @@ export function Header({ onSearch }: HeaderProps) {
               </Link>
             ))}
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-3 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
-              >
-                Entrar
-              </Link>
-              <Link
-                href="/cadastro"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
-              >
-                Cadastre-se
-              </Link>
+              {!authLoading && !user ? (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center rounded-lg border border-[#27C7FF] px-4 py-3 text-sm font-medium text-[#27C7FF] transition-colors hover:bg-[#27C7FF]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    href="/cadastro"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#0796C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0AA6D2] focus-visible:ring-offset-2"
+                  >
+                    Cadastre-se
+                  </Link>
+                </>
+              ) : !authLoading && user && (
+                <Link
+                  href="/cliente"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="col-span-2 inline-flex items-center justify-center rounded-lg bg-[#087A9F] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#0796C4]"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Minha Conta
+                </Link>
+              )}
             </div>
             <div className="mt-3">
               <Button

@@ -11,25 +11,28 @@ import {
   Bookmark,
   Factory,
   FlaskConical,
-  Ticket,
-  Wrench,
   ArrowLeftRight,
   LogOut,
   Menu,
-  X
+  X,
+  Ticket,
+  Wrench,
+  Users,
+  FileText,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Clientes', href: '/admin/clientes', icon: Ticket },
+  { name: 'Clientes', href: '/admin/clientes', icon: Users },
+  { name: 'Chamados', href: '/admin/chamados', icon: Ticket },
+  { name: 'Manutenções', href: '/admin/manutencoes', icon: Wrench },
   { name: 'Produtos', href: '/admin/produtos', icon: Package },
   { name: 'Categorias', href: '/admin/categorias', icon: Tags },
   { name: 'Segmentos', href: '/admin/segmentos', icon: Bookmark },
   { name: 'Marcas', href: '/admin/marcas', icon: Factory },
   { name: 'Aplicações', href: '/admin/aplicacoes', icon: FlaskConical },
-  { name: 'Chamados', href: '/admin/chamados', icon: Ticket },
-  { name: 'Manutenções', href: '/admin/manutencoes', icon: Wrench },
 ];
 
 export default function AdminLayout({
@@ -37,17 +40,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, isAdmin, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Redireciona para login se não estiver logado OU se não for admin
-    if (!loading && (!user || !isAdmin) && pathname !== '/admin/login') {
+    if (!loading && !user && pathname !== '/admin/login') {
       router.push('/admin/login');
     }
-  }, [user, loading, isAdmin, router, pathname]);
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     return (

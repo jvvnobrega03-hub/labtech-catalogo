@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { getSupabaseClient } from '@/lib/supabase/client';
+
+const supabase = getSupabaseClient();
 
 export default function AdminLoginPage() {
-  const { signIn, user } = useAuth();
+  const { signIn, user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,11 +17,19 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Se já estiver logado, redirecionar
-  if (user) {
-    router.push('/admin');
-    return null;
-  }
+  // Se já estiver logado como admin, redirecionar para o painel
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      router.push('/admin');
+    }
+  }, [user, isAdmin, authLoading, router]);
+
+  // Se não for admin, mostrar erro
+  useEffect(() => {
+    if (!authLoading && user && !isAdmin) {
+      setError('Você não tem permissão para acessar o painel administrativo.');
+    }
+  }, [user, isAdmin, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +42,18 @@ export default function AdminLoginPage() {
       setError('E-mail ou senha incorretos. Tente novamente.');
       setLoading(false);
     } else {
-      router.push('/admin');
+      // Verificar se é admin após login
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const userRole = authUser?.user_metadata?.role;
+
+      if (userRole === 'admin') {
+        router.push('/admin');
+      } else {
+        // Se não for admin, faz logout e mostra erro
+        await supabase.auth.signOut();
+        setError('Você não tem permissão para acessar o painel administrativo.');
+        setLoading(false);
+      }
     }
   };
 
