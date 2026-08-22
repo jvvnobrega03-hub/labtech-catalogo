@@ -64,13 +64,13 @@ function validationError(message: string, fields?: Record<string, string>) {
   return errorResponse(400, 'VALIDATION_ERROR', message, fields);
 }
 
-function databaseUnavailableResponse(error: { code?: string; message?: string; status?: number }) {
-  const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
+function databaseUnavailableResponse(error: { code?: string; message?: string; details?: string; hint?: string; status?: number }) {
+  const details = `${error.code || ''} ${error.message || ''} ${error.details || ''} ${error.hint || ''}`.toLowerCase();
   const errorCode = details.includes('supabase server configuration') || details.includes('configuration is incomplete')
     ? 'SUPABASE_SERVER_CONFIGURATION_MISSING'
     : error.status === 401 || error.status === 403 || details.includes('invalid api key') || details.includes('unauthorized') || details.includes('forbidden') || details.includes('jwt') || details.includes('401') || details.includes('403')
     ? 'SUPABASE_SERVER_KEY_INVALID'
-    : details.includes('fetch failed') || details.includes('enotfound')
+    : error.status === 0 || details.includes('fetch failed') || details.includes('failed to fetch') || details.includes('network error') || details.includes('enotfound') || details.includes('econnrefused') || details.includes('econnreset') || details.includes('etimedout') || details.includes('enetunreach') || details.includes('eai_again')
       ? 'SUPABASE_CONNECTION_FAILED'
       : error.status !== undefined && error.status >= 500
         ? 'SUPABASE_UPSTREAM_UNAVAILABLE'

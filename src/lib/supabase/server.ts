@@ -1,8 +1,16 @@
 import 'server-only';
 
+import { setDefaultResultOrder } from 'node:dns';
 import { createClient } from '@supabase/supabase-js';
 
+function preferIpv4ForSupabase() {
+  // Some shared-hosting networks advertise IPv6 DNS records without a usable
+  // IPv6 route. Prefer IPv4 before opening an outbound Supabase connection.
+  setDefaultResultOrder('ipv4first');
+}
+
 export function createSupabaseAdminClient() {
+  preferIpv4ForSupabase();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   // Supabase now issues `sb_secret_...` keys. Keep the legacy service-role
   // variable as a fallback while deployments are migrated.
@@ -22,6 +30,7 @@ export function createSupabaseAdminClient() {
 }
 
 export function createSupabaseSignupClient() {
+  preferIpv4ForSupabase();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
