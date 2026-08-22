@@ -6,7 +6,9 @@ export const runtime = 'nodejs';
 
 function unavailableResponse(error: { code?: string; message?: string }) {
   const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
-  const errorCode = details.includes('invalid api key') || details.includes('401')
+  const errorCode = details.includes('supabase server configuration') || details.includes('configuration is incomplete')
+    ? 'SUPABASE_SERVER_CONFIGURATION_MISSING'
+    : details.includes('invalid api key') || details.includes('401')
     ? 'SUPABASE_SERVER_KEY_INVALID'
     : details.includes('fetch failed') || details.includes('enotfound')
       ? 'SUPABASE_CONNECTION_FAILED'
@@ -75,10 +77,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[APPROVAL_VALIDATE][UNEXPECTED]', { message });
-    return NextResponse.json({
-      valid: false,
-      error: 'APPROVAL_VALIDATION_UNAVAILABLE',
-      message: 'Não foi possível consultar o serviço de aprovações.',
-    }, { status: 503 });
+    return unavailableResponse({ message });
   }
 }
