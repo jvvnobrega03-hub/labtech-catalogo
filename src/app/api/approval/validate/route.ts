@@ -1,71 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+
+function unavailableResponse(error: { code?: string; message?: string }) {
+  const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
+  const errorCode = details.includes('invalid api key') || details.includes('401')
+    ? 'SUPABASE_SERVER_KEY_INVALID'
+    : details.includes('fetch failed') || details.includes('enotfound')
+      ? 'SUPABASE_CONNECTION_FAILED'
+      : details.includes('42p01') || details.includes('pgrst205')
+        ? 'SUPABASE_SCHEMA_ERROR'
+        : 'SUPABASE_OPERATION_FAILED';
+
+  console.error('[APPROVAL_VALIDATE][DATABASE]', { code: error.code, message: error.message });
+  return NextResponse.json({
+    valid: false,
+    error: errorCode,
+    message: 'Não foi possível consultar o serviço de aprovações.',
+  }, { status: 503 });
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ valid: false, error: 'Configuração do servidor incompleta' }, { status: 500 });
+    const body = await request.json() as { token?: unknown };
+    if (typeof body.token !== 'string' || !/^[0-9a-f]{64}$/i.test(body.token)) {
+      return NextResponse.json({ valid: false, error: 'Token inválido.' }, { status: 400 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { token } = await request.json();
-
-    if (!token) {
-      return NextResponse.json({ valid: false, error: 'Token não fornecido' }, { status: 400 });
-    }
-
-    // Fazer hash do token para comparação
-    const tokenHash = createHash('sha256').update(token).digest('hex');
-
-    // Buscar o token no banco
+    const supabase = createSupabaseAdminClient();
+    const tokenHash = createHash('sha256').update(body.token).digest('hex');
     const { data: tokenData, error: tokenError } = await supabase
       .from('approval_tokens')
-      .select(`
-        id,
-        customer_id,
-        action,
-        used_at,
-        expires_at
-      `)
+      .select('id, customer_id, action, used_at, expires_at')
       .eq('token_hash', tokenHash)
-      .single();
+      .maybeSingle();
 
-    if (tokenError || !tokenData) {
+    if (tokenError) return unavailableResponse(tokenError);
+    if (!tokenData) {
       return NextResponse.json({ valid: false, error: 'Token não encontrado' }, { status: 404 });
     }
-
-    // Verificar se o token já foi usado
     if (tokenData.used_at) {
       return NextResponse.json({ valid: false, error: 'Token já utilizado' }, { status: 400 });
     }
-
-    // Verificar se o token expirou
-    const expiresAt = new Date(tokenData.expires_at);
-    if (expiresAt < new Date()) {
+    if (new Date(tokenData.expires_at) < new Date()) {
       return NextResponse.json({ valid: false, error: 'Token expirado' }, { status: 400 });
     }
 
-    // Buscar dados do cliente
     const { data: customer, error: customerError } = await supabase
       .from('customer_profiles')
-      .select(`
-        id,
-        representative_name,
-        company_name,
-        document,
-        document_type,
-        email,
-        status
-      `)
+      .select('id, representative_name, company_name, document, document_type, email, status')
       .eq('id', tokenData.customer_id)
-      .single();
+      .maybeSingle();
 
-    if (customerError || !customer) {
+    if (customerError) return unavailableResponse(customerError);
+    if (!customer) {
       return NextResponse.json({ valid: false, error: 'Cliente não encontrado' }, { status: 404 });
     }
 
@@ -82,8 +72,13 @@ export async function POST(request: NextRequest) {
       },
       action: tokenData.action,
     });
-  } catch (error: unknown) {
-    console.error('Erro ao validar token:', error);
-    return NextResponse.json({ valid: false, error: 'Erro interno' }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error';
+    console.error('[APPROVAL_VALIDATE][UNEXPECTED]', { message });
+    return NextResponse.json({
+      valid: false,
+      error: 'APPROVAL_VALIDATION_UNAVAILABLE',
+      message: 'Não foi possível consultar o serviço de aprovações.',
+    }, { status: 503 });
   }
 }

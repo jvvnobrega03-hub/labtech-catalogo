@@ -64,6 +64,19 @@ function validationError(message: string, fields?: Record<string, string>) {
   return errorResponse(400, 'VALIDATION_ERROR', message, fields);
 }
 
+function databaseUnavailableResponse(error: { code?: string; message?: string }) {
+  const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
+  const errorCode = details.includes('invalid api key') || details.includes('401')
+    ? 'SUPABASE_SERVER_KEY_INVALID'
+    : details.includes('fetch failed') || details.includes('enotfound')
+      ? 'SUPABASE_CONNECTION_FAILED'
+      : details.includes('42p01') || details.includes('pgrst205')
+        ? 'SUPABASE_SCHEMA_ERROR'
+        : 'SUPABASE_OPERATION_FAILED';
+
+  return errorResponse(503, errorCode, 'O serviço de cadastro está temporariamente indisponível. Tente novamente mais tarde.');
+}
+
 type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
 
 async function rollbackRegistration(
@@ -156,7 +169,7 @@ export async function POST(request: Request) {
         documentCode: documentCheck.error?.code,
         emailCode: emailCheck.error?.code,
       });
-      throw new Error('Customer duplicate check failed');
+      return databaseUnavailableResponse(documentCheck.error || emailCheck.error!);
     }
     if (documentCheck.data) fields.document = `Este ${documentType} já possui cadastro.`;
     if (emailCheck.data) fields.email = 'Este e-mail já possui cadastro.';
@@ -212,7 +225,7 @@ export async function POST(request: Request) {
         return errorResponse(409, 'CUSTOMER_ALREADY_EXISTS', 'Já existe uma solicitação associada a estes dados.');
       }
       console.error('[CUSTOMER_REGISTER][PROFILE]', { code: profileError?.code, message: profileError?.message });
-      throw new Error('Customer profile creation failed');
+      return databaseUnavailableResponse(profileError || { message: 'Customer profile was not returned' });
     }
 
     createdCustomerId = customer.id;
@@ -227,7 +240,10 @@ export async function POST(request: Request) {
 
     if (tokenError) {
       console.error('[CUSTOMER_REGISTER][APPROVAL_TOKENS]', { code: tokenError.code, message: tokenError.message });
-      throw new Error('Approval token creation failed');
+      await rollbackRegistration(admin, createdUserId, createdCustomerId);
+      createdUserId = null;
+      createdCustomerId = null;
+      return databaseUnavailableResponse(tokenError);
     }
 
     const emailResult = await sendNewCustomerNotification(customer, approvalToken, rejectToken);
