@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 let _supabaseClient: SupabaseClient | null = null;
 
@@ -8,18 +9,16 @@ function createSupabaseClient(): SupabaseClient {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // Return a client that will fail gracefully at runtime
-    return createClient(
+    return createBrowserClient(
       'https://placeholder.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
     );
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  });
+  // O middleware protege rotas no servidor a partir de cookies. O cliente SSR
+  // mantém a mesma sessão em cookies no navegador, para que o login sobreviva
+  // à navegação e a atualizações da página.
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
 export function getSupabaseClient(): SupabaseClient {
