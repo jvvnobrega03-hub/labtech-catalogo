@@ -4,19 +4,21 @@ import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-function unavailableResponse(error: { code?: string; message?: string }) {
+function unavailableResponse(error: { code?: string; message?: string; status?: number }) {
   const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
   const errorCode = details.includes('supabase server configuration') || details.includes('configuration is incomplete')
     ? 'SUPABASE_SERVER_CONFIGURATION_MISSING'
-    : details.includes('invalid api key') || details.includes('401')
+    : error.status === 401 || error.status === 403 || details.includes('invalid api key') || details.includes('unauthorized') || details.includes('forbidden') || details.includes('jwt') || details.includes('401') || details.includes('403')
     ? 'SUPABASE_SERVER_KEY_INVALID'
     : details.includes('fetch failed') || details.includes('enotfound')
       ? 'SUPABASE_CONNECTION_FAILED'
+      : error.status !== undefined && error.status >= 500
+        ? 'SUPABASE_UPSTREAM_UNAVAILABLE'
       : details.includes('42p01') || details.includes('pgrst205')
         ? 'SUPABASE_SCHEMA_ERROR'
         : 'SUPABASE_OPERATION_FAILED';
 
-  console.error('[APPROVAL_VALIDATE][DATABASE]', { code: error.code, message: error.message });
+  console.error('[APPROVAL_VALIDATE][DATABASE]', { code: error.code, status: error.status, message: error.message });
   return NextResponse.json({
     valid: false,
     error: errorCode,
@@ -33,13 +35,13 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
     const tokenHash = createHash('sha256').update(body.token).digest('hex');
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError, status: tokenStatus } = await supabase
       .from('approval_tokens')
       .select('id, customer_id, action, used_at, expires_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
 
-    if (tokenError) return unavailableResponse(tokenError);
+    if (tokenError) return unavailableResponse({ ...tokenError, status: tokenStatus });
     if (!tokenData) {
       return NextResponse.json({ valid: false, error: 'Token não encontrado' }, { status: 404 });
     }
@@ -50,13 +52,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ valid: false, error: 'Token expirado' }, { status: 400 });
     }
 
-    const { data: customer, error: customerError } = await supabase
+    const { data: customer, error: customerError, status: customerStatus } = await supabase
       .from('customer_profiles')
       .select('id, representative_name, company_name, document, document_type, email, status')
       .eq('id', tokenData.customer_id)
       .maybeSingle();
 
-    if (customerError) return unavailableResponse(customerError);
+    if (customerError) return unavailableResponse({ ...customerError, status: customerStatus });
     if (!customer) {
       return NextResponse.json({ valid: false, error: 'Cliente não encontrado' }, { status: 404 });
     }

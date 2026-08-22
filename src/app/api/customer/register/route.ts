@@ -64,12 +64,16 @@ function validationError(message: string, fields?: Record<string, string>) {
   return errorResponse(400, 'VALIDATION_ERROR', message, fields);
 }
 
-function databaseUnavailableResponse(error: { code?: string; message?: string }) {
+function databaseUnavailableResponse(error: { code?: string; message?: string; status?: number }) {
   const details = `${error.code || ''} ${error.message || ''}`.toLowerCase();
-  const errorCode = details.includes('invalid api key') || details.includes('401')
+  const errorCode = details.includes('supabase server configuration') || details.includes('configuration is incomplete')
+    ? 'SUPABASE_SERVER_CONFIGURATION_MISSING'
+    : error.status === 401 || error.status === 403 || details.includes('invalid api key') || details.includes('unauthorized') || details.includes('forbidden') || details.includes('jwt') || details.includes('401') || details.includes('403')
     ? 'SUPABASE_SERVER_KEY_INVALID'
     : details.includes('fetch failed') || details.includes('enotfound')
       ? 'SUPABASE_CONNECTION_FAILED'
+      : error.status !== undefined && error.status >= 500
+        ? 'SUPABASE_UPSTREAM_UNAVAILABLE'
       : details.includes('42p01') || details.includes('pgrst205')
         ? 'SUPABASE_SCHEMA_ERROR'
         : 'SUPABASE_OPERATION_FAILED';
@@ -169,7 +173,8 @@ export async function POST(request: Request) {
         documentCode: documentCheck.error?.code,
         emailCode: emailCheck.error?.code,
       });
-      return databaseUnavailableResponse(documentCheck.error || emailCheck.error!);
+      const failedCheck = documentCheck.error ? documentCheck : emailCheck;
+      return databaseUnavailableResponse({ ...failedCheck.error!, status: failedCheck.status });
     }
     if (documentCheck.data) fields.document = `Este ${documentType} já possui cadastro.`;
     if (emailCheck.data) fields.email = 'Este e-mail já possui cadastro.';
@@ -193,7 +198,7 @@ export async function POST(request: Request) {
 
     createdUserId = authData.user.id;
 
-    const { data: customer, error: profileError } = await admin
+    const { data: customer, error: profileError, status: profileStatus } = await admin
       .from('customer_profiles')
       .insert({
         auth_user_id: createdUserId,
@@ -225,7 +230,9 @@ export async function POST(request: Request) {
         return errorResponse(409, 'CUSTOMER_ALREADY_EXISTS', 'Já existe uma solicitação associada a estes dados.');
       }
       console.error('[CUSTOMER_REGISTER][PROFILE]', { code: profileError?.code, message: profileError?.message });
-      return databaseUnavailableResponse(profileError || { message: 'Customer profile was not returned' });
+      return databaseUnavailableResponse(profileError
+        ? { ...profileError, status: profileStatus }
+        : { message: 'Customer profile was not returned' });
     }
 
     createdCustomerId = customer.id;
@@ -233,7 +240,7 @@ export async function POST(request: Request) {
     const approvalToken = randomBytes(32).toString('hex');
     const rejectToken = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { error: tokenError } = await admin.from('approval_tokens').insert([
+    const { error: tokenError, status: tokenStatus } = await admin.from('approval_tokens').insert([
       { customer_id: customer.id, token_hash: createHash('sha256').update(approvalToken).digest('hex'), action: 'APPROVE', expires_at: expiresAt },
       { customer_id: customer.id, token_hash: createHash('sha256').update(rejectToken).digest('hex'), action: 'REJECT', expires_at: expiresAt },
     ]);
@@ -243,7 +250,7 @@ export async function POST(request: Request) {
       await rollbackRegistration(admin, createdUserId, createdCustomerId);
       createdUserId = null;
       createdCustomerId = null;
-      return databaseUnavailableResponse(tokenError);
+      return databaseUnavailableResponse({ ...tokenError, status: tokenStatus });
     }
 
     const emailResult = await sendNewCustomerNotification(customer, approvalToken, rejectToken);
