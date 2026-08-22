@@ -2,12 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { getSupabaseClient } from '@/lib/supabase/client';
 import { formatCPFOrCNPJ, formatCEP, formatPhone, validateDocument, validateEmail, validatePasswordSimple, detectDocumentType, onlyNumbers } from '@/lib/validation';
 import { Loader2, Eye, EyeOff, Check, AlertCircle, ArrowLeft } from 'lucide-react';
-
-const supabase = getSupabaseClient();
 
 interface FormData {
   representative_name: string;
@@ -34,8 +30,6 @@ interface Errors {
 }
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -220,76 +214,22 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      // 1. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email.toLowerCase().trim(),
-        password: formData.password,
+      const response = await fetch('/api/customer/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
+      const result = await response.json();
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Erro ao criar usuário');
-      }
-
-      // 2. Verificar duplicatas antes de salvar
-      const { data: existing } = await supabase
-        .from('customer_profiles')
-        .select('id')
-        .or(`document.eq.${onlyNumbers(formData.document)},email.ilike.${formData.email}`)
-        .maybeSingle();
-
-      if (existing) {
-        // Deletar usuário auth se já existir
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        setErrors({ document: 'CPF/CNPJ ou e-mail já cadastrado.' });
+      if (!response.ok) {
+        setErrors(result.fields || { submit: result.error || 'Erro ao processar cadastro. Tente novamente.' });
         return;
       }
 
-      // 3. Criar perfil do cliente
-      const { data: profileData, error: profileError } = await supabase
-        .from('customer_profiles')
-        .insert({
-          auth_user_id: authData.user.id,
-          representative_name: formData.representative_name.trim(),
-          position: formData.position.trim(),
-          document: onlyNumbers(formData.document),
-          document_type: detectDocumentType(formData.document),
-          company_name: formData.company_name.trim(),
-          postal_code: onlyNumbers(formData.postal_code),
-          street: formData.street.trim(),
-          number: formData.number.trim(),
-          neighborhood: formData.neighborhood.trim(),
-          city: formData.city.trim(),
-          state: formData.state.trim(),
-          complement: formData.complement.trim() || null,
-          reference_point: formData.reference_point.trim() || null,
-          phone: onlyNumbers(formData.phone),
-          email: formData.email.toLowerCase().trim(),
-          status: 'PENDING',
-        })
-        .select('id')
-        .single();
-
-      if (profileError) {
-        // Deletar usuário auth se falhar
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        throw profileError;
-      }
-
-      // 4. Enviar notificação ao admin (em background, não bloqueia o sucesso)
-      if (profileData?.id) {
-        fetch('/api/customer/notify-admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerId: profileData.id }),
-        }).catch(err => console.error('Erro ao enviar notificação:', err));
-      }
-
       setSuccess(true);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao cadastrar:', error);
-      setErrors({ submit: error.message || 'Erro ao processar cadastro. Tente novamente.' });
+      setErrors({ submit: 'Erro ao processar cadastro. Tente novamente.' });
     } finally {
       setSubmitting(false);
     }

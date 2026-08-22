@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       // Verificar role no user_metadata
-      const userRole = session?.user?.user_metadata?.role;
+      const userRole = session?.user?.app_metadata?.role;
       setIsAdmin(userRole === 'admin');
       setLoading(false);
     });
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       // Verificar role no user_metadata
-      const userRole = session?.user?.user_metadata?.role;
+      const userRole = session?.user?.app_metadata?.role;
       setIsAdmin(userRole === 'admin');
       setLoading(false);
     });

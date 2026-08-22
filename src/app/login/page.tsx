@@ -25,7 +25,7 @@ export default function ClientLoginPage() {
 
     try {
       // 1. Autenticar no Supabase
-      const { error: authError } = await signIn(email, password);
+      const { error: authError } = await signIn(email.trim().toLowerCase(), password);
 
       if (authError) {
         if (authError.message.includes('Invalid login')) {
@@ -36,11 +36,11 @@ export default function ClientLoginPage() {
         return;
       }
 
-      // 2. Verificar status do cliente
+      const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from('customer_profiles')
         .select('status, email')
-        .ilike('email', email)
+        .eq('auth_user_id', authenticatedUser?.id)
         .single();
 
       if (profile) {
@@ -71,7 +71,7 @@ export default function ClientLoginPage() {
 
         if (user?.email) {
           // Verificar se é admin pelo metadata
-          const isAdmin = user.user_metadata?.role === 'admin';
+          const isAdmin = user.app_metadata?.role === 'admin';
           if (isAdmin) {
             router.push('/admin');
             return;
@@ -81,7 +81,7 @@ export default function ClientLoginPage() {
         setError('Credenciais não encontradas. Entre em contato com a LABTECH.');
         await supabase.auth.signOut();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro no login:', err);
       setError('Erro ao processar login. Tente novamente.');
     } finally {

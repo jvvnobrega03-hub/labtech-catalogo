@@ -13,16 +13,15 @@ const publicRoutes = [
   '/login',
   '/cadastro',
   '/aprovacao',
+  '/admin/login',
   '/api/cep',
-  '/api/customer/check',
+  '/api/customer/register',
 ]
 
 // Rotas que permitem acesso público
 const publicApiRoutes = [
   '/api/cep',
-  '/api/customer/check',
-  '/api/customer/notify-admin',
-  '/api/customer/send-approval-email',
+  '/api/customer/register',
   '/api/approval/validate',
   '/api/approval/confirm',
 ]
@@ -75,10 +74,10 @@ export async function middleware(request: NextRequest) {
   )
 
   // Verifica sessão atual
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   // Se há erro ou sem sessão
-  if (error || !session) {
+  if (error || !user) {
     // Se está tentando acessar área restrita, redireciona para login
     if (adminRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
@@ -90,8 +89,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Obtém dados do usuário
-  const user = session.user
-  const userRole = user.user_metadata?.role
+  const userRole = user.app_metadata?.role
 
   // PROTEÇÃO DO ADMIN
   if (adminRoutes.some(route => pathname.startsWith(route))) {

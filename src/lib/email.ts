@@ -4,7 +4,7 @@ const ADMIN_EMAIL = process.env.ADMIN_APPROVAL_EMAIL || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'LABTECH <naoresponda@labtech.com.br>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-interface CustomerData {
+export interface CustomerData {
   id: string;
   representative_name: string;
   position: string;
@@ -31,7 +31,8 @@ interface ApprovalResult {
 // Enviar e-mail para o admin sobre novo cadastro pendente
 export async function sendNewCustomerNotification(
   customer: CustomerData,
-  approvalToken: string
+  approvalToken: string,
+  rejectToken: string
 ): Promise<ApprovalResult> {
   if (!ADMIN_EMAIL) {
     console.error('ADMIN_APPROVAL_EMAIL não configurado');
@@ -41,7 +42,7 @@ export async function sendNewCustomerNotification(
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const approveUrl = `${APP_URL}/aprovacao?token=${approvalToken}&action=approve`;
-  const rejectUrl = `${APP_URL}/aprovacao?token=${approvalToken}&action=reject`;
+  const rejectUrl = `${APP_URL}/aprovacao?token=${rejectToken}&action=reject`;
 
   const documentFormatted = customer.document_type === 'CNPJ'
     ? `${customer.document.slice(0, 2)}.${customer.document.slice(2, 5)}.${customer.document.slice(5, 8)}/${customer.document.slice(8, 12)}-${customer.document.slice(12)}`
@@ -221,9 +222,9 @@ export async function sendNewCustomerNotification(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao enviar e-mail de notificação:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao enviar e-mail' };
   }
 }
 
@@ -315,9 +316,9 @@ export async function sendCustomerApprovalEmail(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao enviar e-mail de aprovação:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao enviar e-mail' };
   }
 }
 
@@ -400,8 +401,8 @@ export async function sendCustomerRejectionEmail(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao enviar e-mail de rejeição:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Erro ao enviar e-mail' };
   }
 }

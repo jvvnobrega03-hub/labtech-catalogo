@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { useAuth } from '@/providers/AuthProvider';
 import { formatCPFOrCNPJ, formatPhone, formatDateBR } from '@/lib/validation';
-import Link from 'next/link';
 import {
   Search,
   Check,
   X,
   AlertTriangle,
-  MoreVertical,
   Eye,
   Loader2,
-  UserCheck,
-  UserX,
   Pause,
   Play,
   Filter
@@ -54,7 +49,6 @@ interface CustomerProfile {
 type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
 export default function CustomersPage() {
-  const { user } = useAuth();
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,6 +101,23 @@ export default function CustomersPage() {
 
   const pendingCount = customers.filter(c => c.status === 'PENDING').length;
 
+  async function updateCustomerStatus(customerId: string, action: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'REACTIVATE', reason?: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Sessão expirada.');
+
+    const response = await fetch('/api/admin/customers/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ customerId, action, reason }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Não foi possível atualizar o cadastro.');
+    return result;
+  }
+
   async function handleApprove(customer: CustomerProfile) {
     if (!confirm(`Deseja aprovar o cadastro de ${customer.representative_name} / ${customer.company_name}?`)) {
       return;
@@ -114,31 +125,13 @@ export default function CustomersPage() {
 
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('customer_profiles')
-        .update({
-          status: 'APPROVED',
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id,
-          approval_method: 'ADMIN',
-        })
-        .eq('id', customer.id);
-
-      if (error) throw error;
-
-      // Enviar e-mail de aprovação para o cliente
-      await fetch('/api/customer/send-approval-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: customer.id }),
-      }).catch(err => console.error('Erro ao enviar e-mail:', err));
-
+      const result = await updateCustomerStatus(customer.id, 'APPROVE');
       await loadCustomers();
       setSelectedCustomer(null);
-      alert('Cliente aprovado com sucesso! E-mail de confirmação enviado ao cliente.');
+      alert(result.emailSent ? 'Cliente aprovado com sucesso! E-mail de confirmação enviado ao cliente.' : 'Cliente aprovado com sucesso. O e-mail de confirmação não pôde ser enviado.');
     } catch (error) {
       console.error('Erro ao aprovar:', error);
-      alert('Erro ao aprobar cliente.');
+      alert(error instanceof Error ? error.message : 'Erro ao aprovar cliente.');
     } finally {
       setActionLoading(false);
     }
@@ -149,17 +142,7 @@ export default function CustomersPage() {
 
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('customer_profiles')
-        .update({
-          status: 'REJECTED',
-          rejected_at: new Date().toISOString(),
-          rejected_by: user?.id,
-          rejection_reason: rejectReason,
-        })
-        .eq('id', selectedCustomer.id);
-
-      if (error) throw error;
+      await updateCustomerStatus(selectedCustomer.id, 'REJECT', rejectReason);
 
       await loadCustomers();
       setSelectedCustomer(null);
@@ -179,17 +162,7 @@ export default function CustomersPage() {
 
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('customer_profiles')
-        .update({
-          status: 'SUSPENDED',
-          suspended_at: new Date().toISOString(),
-          suspended_by: user?.id,
-          suspension_reason: suspendReason,
-        })
-        .eq('id', selectedCustomer.id);
-
-      if (error) throw error;
+      await updateCustomerStatus(selectedCustomer.id, 'SUSPEND', suspendReason);
 
       await loadCustomers();
       setSelectedCustomer(null);
@@ -210,17 +183,7 @@ export default function CustomersPage() {
 
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from('customer_profiles')
-        .update({
-          status: 'APPROVED',
-          suspended_at: null,
-          suspended_by: null,
-          suspension_reason: null,
-        })
-        .eq('id', selectedCustomer.id);
-
-      if (error) throw error;
+      await updateCustomerStatus(selectedCustomer.id, 'REACTIVATE');
 
       await loadCustomers();
       setSelectedCustomer(null);

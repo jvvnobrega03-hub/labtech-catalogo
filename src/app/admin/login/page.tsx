@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
     } else {
       // Verificar se é admin após login
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      const userRole = authUser?.user_metadata?.role;
+      const userRole = authUser?.app_metadata?.role;
 
       if (userRole === 'admin') {
         router.push('/admin');
