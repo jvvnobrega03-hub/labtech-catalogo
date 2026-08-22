@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json({ valid: false, error: 'Configuração do servidor incompleta' }, { status: 500 });
@@ -19,8 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fazer hash do token para comparação
-    const crypto = require('crypto');
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
 
     // Buscar o token no banco
     const { data: tokenData, error: tokenError } = await supabase
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       },
       action: tokenData.action,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao validar token:', error);
     return NextResponse.json({ valid: false, error: 'Erro interno' }, { status: 500 });
   }

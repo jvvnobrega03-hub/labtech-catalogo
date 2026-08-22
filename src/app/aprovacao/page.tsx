@@ -19,6 +19,7 @@ interface CustomerData {
 interface ApprovalValidationResponse extends ApiErrorPayload {
   valid?: boolean;
   customer?: CustomerData;
+  action?: 'APPROVE' | 'REJECT';
 }
 
 interface ApprovalConfirmResponse extends ApiErrorPayload {
@@ -52,7 +53,8 @@ function ApprovalContent() {
 
       const data = await readJsonResponse<ApprovalValidationResponse>(response);
 
-      if (!response.ok || !data?.valid || !data.customer) {
+      const expectedAction = action === 'approve' ? 'APPROVE' : 'REJECT';
+      if (!response.ok || !data?.valid || !data.customer || data.action !== expectedAction) {
         setResult({ success: false, message: data?.message || data?.error || 'Token inválido ou expirado.' });
         setLoading(false);
         return;
@@ -65,7 +67,7 @@ function ApprovalContent() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [action, token]);
 
   useEffect(() => {
     if (parameterError) return;
