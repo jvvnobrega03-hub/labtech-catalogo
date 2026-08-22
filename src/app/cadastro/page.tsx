@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatCPFOrCNPJ, formatCEP, formatPhone, validateDocument, validateEmail, validatePasswordSimple, detectDocumentType, onlyNumbers } from '@/lib/validation';
 import { Loader2, Eye, EyeOff, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { type ApiErrorPayload, readJsonResponse } from '@/lib/http/read-json-response';
 
 interface FormData {
   representative_name: string;
@@ -96,9 +97,9 @@ export default function RegisterPage() {
     setCepLoading(true);
     try {
       const response = await fetch(`/api/cep?cep=${cep}`);
-      const data = await response.json();
+      const data = await readJsonResponse<{ error?: string; street?: string; neighborhood?: string; city?: string; state?: string }>(response);
 
-      if (data.error) {
+      if (!response.ok || !data || data.error) {
         setErrors({ ...errors, postal_code: 'CEP não encontrado. Verifique o número.' });
       } else {
         setFormData(prev => ({
@@ -219,14 +220,21 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      const result = await response.json();
+      const result = await readJsonResponse<ApiErrorPayload>(response);
 
       if (!response.ok) {
-        setErrors(result.fields || { submit: result.error || 'Erro ao processar cadastro. Tente novamente.' });
+        setErrors(result?.fields || {
+          submit: result?.message || 'Não foi possível processar o cadastro. Tente novamente.',
+        });
         return;
       }
 
-      setSuccess(true);
+      if (result?.success) {
+        setSuccess(true);
+        return;
+      }
+
+      setErrors({ submit: 'A resposta do cadastro foi inválida. Tente novamente.' });
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
       setErrors({ submit: 'Erro ao processar cadastro. Tente novamente.' });

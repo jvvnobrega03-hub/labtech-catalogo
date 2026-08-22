@@ -4,6 +4,8 @@ import { createSupabaseAdminClient, createSupabaseSignupClient } from '@/lib/sup
 import { sendNewCustomerNotification } from '@/lib/email';
 import { createHash, randomBytes } from 'crypto';
 
+export const runtime = 'nodejs';
+
 interface RegistrationPayload {
   representative_name?: unknown;
   position?: unknown;
@@ -49,19 +51,61 @@ function optionalText(value: unknown, maxLength: number) {
   return normalized || null;
 }
 
-function validationError(error: string, fields?: Record<string, string>) {
-  return NextResponse.json({ success: false, error, fields }, { status: 400 });
+function errorResponse(
+  status: number,
+  error: string,
+  message: string,
+  fields?: Record<string, string>,
+) {
+  return NextResponse.json({ success: false, error, message, fields }, { status });
+}
+
+function validationError(message: string, fields?: Record<string, string>) {
+  return errorResponse(400, 'VALIDATION_ERROR', message, fields);
+}
+
+type AdminClient = ReturnType<typeof createSupabaseAdminClient>;
+
+async function rollbackRegistration(
+  admin: AdminClient,
+  userId: string | null,
+  customerId: string | null,
+) {
+  if (customerId) {
+    const { error } = await admin.from('customer_profiles').delete().eq('id', customerId);
+    if (error) {
+      console.error('[CUSTOMER_REGISTER][PROFILE_ROLLBACK]', { code: error.code, message: error.message });
+    }
+  }
+
+  if (userId) {
+    const { error } = await admin.auth.admin.deleteUser(userId);
+    if (error) {
+      console.error('[CUSTOMER_REGISTER][AUTH_ROLLBACK]', { message: error.message });
+    }
+  }
+}
+
+function isSupabaseConfigurationError(error: unknown): error is Error {
+  return error instanceof Error && error.message.includes('Supabase') && error.message.includes('configuration');
 }
 
 export async function POST(request: Request) {
   let createdUserId: string | null = null;
-  const admin = createSupabaseAdminClient();
+  let createdCustomerId: string | null = null;
+  let admin: AdminClient | null = null;
 
   try {
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > 20_000) return validationError('Dados de cadastro inválidos.');
 
-    const body = await request.json() as RegistrationPayload;
+    let body: RegistrationPayload;
+    try {
+      body = await request.json() as RegistrationPayload;
+    } catch {
+      return validationError('Dados de cadastro inválidos.');
+    }
+
     const fields: Record<string, string> = {};
     const values: Record<string, string> = {};
 
@@ -100,25 +144,38 @@ export async function POST(request: Request) {
 
     if (Object.keys(fields).length) return validationError('Revise os dados informados.', fields);
 
+    admin = createSupabaseAdminClient();
+
     const [documentCheck, emailCheck] = await Promise.all([
       admin.from('customer_profiles').select('id').eq('document', document).maybeSingle(),
       admin.from('customer_profiles').select('id').ilike('email', email).maybeSingle(),
     ]);
 
-    if (documentCheck.error || emailCheck.error) throw new Error('duplicate check failed');
+    if (documentCheck.error || emailCheck.error) {
+      console.error('[CUSTOMER_REGISTER][DUPLICATE_CHECK]', {
+        documentCode: documentCheck.error?.code,
+        emailCode: emailCheck.error?.code,
+      });
+      throw new Error('Customer duplicate check failed');
+    }
     if (documentCheck.data) fields.document = `Este ${documentType} já possui cadastro.`;
     if (emailCheck.data) fields.email = 'Este e-mail já possui cadastro.';
-    if (Object.keys(fields).length) return validationError('CPF/CNPJ ou e-mail já cadastrado.', fields);
+    if (Object.keys(fields).length) {
+      return errorResponse(409, 'CUSTOMER_ALREADY_EXISTS', 'Já existe uma solicitação associada a estes dados.', fields);
+    }
 
     const signup = createSupabaseSignupClient();
     const { data: authData, error: authError } = await signup.auth.signUp({ email, password });
+    const existingAuthUser = authData.user?.identities?.length === 0;
 
-    if (authError || !authData.user) {
+    if (authError || !authData.user || existingAuthUser) {
       const duplicate = authError?.message.toLowerCase().includes('already') || authError?.message.toLowerCase().includes('registered');
-      return NextResponse.json(
-        { success: false, error: duplicate ? 'Este e-mail já possui cadastro.' : 'Não foi possível criar a conta. Verifique os dados e tente novamente.' },
-        { status: duplicate ? 409 : 400 },
-      );
+      if (duplicate || existingAuthUser) {
+        return errorResponse(409, 'CUSTOMER_ALREADY_EXISTS', 'Já existe uma solicitação associada a este e-mail.', {
+          email: 'Este e-mail já possui cadastro.',
+        });
+      }
+      return errorResponse(400, 'ACCOUNT_CREATION_FAILED', 'Não foi possível criar a conta. Verifique os dados e tente novamente.');
     }
 
     createdUserId = authData.user.id;
@@ -148,14 +205,17 @@ export async function POST(request: Request) {
       .single();
 
     if (profileError || !customer) {
-      await admin.auth.admin.deleteUser(createdUserId);
+      await rollbackRegistration(admin, createdUserId, null);
       createdUserId = null;
 
       if (profileError?.code === '23505') {
-        return NextResponse.json({ success: false, error: 'CPF/CNPJ ou e-mail já cadastrado.' }, { status: 409 });
+        return errorResponse(409, 'CUSTOMER_ALREADY_EXISTS', 'Já existe uma solicitação associada a estes dados.');
       }
-      throw new Error('profile creation failed');
+      console.error('[CUSTOMER_REGISTER][PROFILE]', { code: profileError?.code, message: profileError?.message });
+      throw new Error('Customer profile creation failed');
     }
+
+    createdCustomerId = customer.id;
 
     const approvalToken = randomBytes(32).toString('hex');
     const rejectToken = randomBytes(32).toString('hex');
@@ -165,19 +225,46 @@ export async function POST(request: Request) {
       { customer_id: customer.id, token_hash: createHash('sha256').update(rejectToken).digest('hex'), action: 'REJECT', expires_at: expiresAt },
     ]);
 
-    if (!tokenError) {
-      const emailResult = await sendNewCustomerNotification(customer, approvalToken, rejectToken);
-      await admin.from('customer_profiles').update({
-        approval_notification_sent_at: emailResult.success ? new Date().toISOString() : null,
-        approval_notification_error: emailResult.error || null,
-        approval_notification_attempts: 1,
-      }).eq('id', customer.id);
+    if (tokenError) {
+      console.error('[CUSTOMER_REGISTER][APPROVAL_TOKENS]', { code: tokenError.code, message: tokenError.message });
+      throw new Error('Approval token creation failed');
     }
 
-    return NextResponse.json({ success: true, status: 'PENDING' }, { status: 201 });
+    const emailResult = await sendNewCustomerNotification(customer, approvalToken, rejectToken);
+    if (!emailResult.success) {
+      console.error('[CUSTOMER_REGISTER][NOTIFICATION]', { message: emailResult.error || 'Notification delivery failed' });
+    }
+
+    const { error: notificationUpdateError } = await admin.from('customer_profiles').update({
+      approval_notification_sent_at: emailResult.success ? new Date().toISOString() : null,
+      approval_notification_error: emailResult.error || null,
+      approval_notification_attempts: 1,
+    }).eq('id', customer.id);
+    if (notificationUpdateError) {
+      console.error('[CUSTOMER_REGISTER][NOTIFICATION_AUDIT]', {
+        code: notificationUpdateError.code,
+        message: notificationUpdateError.message,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { status: 'PENDING' },
+      message: 'Solicitação de cadastro enviada com sucesso.',
+    }, { status: 201 });
   } catch (error) {
-    if (createdUserId) await admin.auth.admin.deleteUser(createdUserId);
-    console.error('Customer registration failed:', error);
-    return NextResponse.json({ success: false, error: 'Não foi possível concluir o cadastro. Tente novamente.' }, { status: 500 });
+    if (admin && (createdUserId || createdCustomerId)) {
+      await rollbackRegistration(admin, createdUserId, createdCustomerId);
+    }
+
+    if (isSupabaseConfigurationError(error)) {
+      console.error('[CUSTOMER_REGISTER][CONFIG]', { message: error.message });
+      return errorResponse(503, 'REGISTRATION_UNAVAILABLE', 'O cadastro está temporariamente indisponível. Tente novamente mais tarde.');
+    }
+
+    console.error('[CUSTOMER_REGISTER][UNEXPECTED]', {
+      message: error instanceof Error ? error.message : 'Unknown registration error',
+    });
+    return errorResponse(500, 'REGISTRATION_FAILED', 'Não foi possível concluir o cadastro. Tente novamente.');
   }
 }

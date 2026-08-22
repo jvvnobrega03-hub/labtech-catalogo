@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useCallback, useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getSupabaseClient } from '@/lib/supabase/client';
 import { formatCPFOrCNPJ } from '@/lib/validation';
-import { Loader2, Check, X, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Loader2, Check, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-
-const supabase = getSupabaseClient();
+import { type ApiErrorPayload, readJsonResponse } from '@/lib/http/read-json-response';
 
 interface CustomerData {
   id: string;
@@ -18,11 +16,25 @@ interface CustomerData {
   email: string;
 }
 
+interface ApprovalValidationResponse extends ApiErrorPayload {
+  valid?: boolean;
+  customer?: CustomerData;
+}
+
+interface ApprovalConfirmResponse extends ApiErrorPayload {
+  success?: boolean;
+}
+
 function ApprovalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const action = searchParams.get('action');
+  const parameterError = !token || !action
+    ? 'Parâmetros inválidos. Token não fornecido.'
+    : action !== 'approve' && action !== 'reject'
+      ? 'Ação inválida.'
+      : null;
 
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
@@ -30,24 +42,7 @@ function ApprovalContent() {
   const [result, setResult] = useState<{ success: boolean; message: string; error?: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  useEffect(() => {
-    if (!token || !action) {
-      setResult({ success: false, message: 'Parâmetros inválidos. Token não fornecido.' });
-      setLoading(false);
-      return;
-    }
-
-    if (action !== 'approve' && action !== 'reject') {
-      setResult({ success: false, message: 'Ação inválida.' });
-      setLoading(false);
-      return;
-    }
-
-    // Buscar dados do cliente através do token
-    validateToken();
-  }, [token, action]);
-
-  async function validateToken() {
+  const validateToken = useCallback(async () => {
     try {
       const response = await fetch('/api/approval/validate', {
         method: 'POST',
@@ -55,10 +50,10 @@ function ApprovalContent() {
         body: JSON.stringify({ token }),
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse<ApprovalValidationResponse>(response);
 
-      if (!data.valid || !data.customer) {
-        setResult({ success: false, message: 'Token inválido ou expirado.' });
+      if (!response.ok || !data?.valid || !data.customer) {
+        setResult({ success: false, message: data?.message || data?.error || 'Token inválido ou expirado.' });
         setLoading(false);
         return;
       }
@@ -70,7 +65,18 @@ function ApprovalContent() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [token]);
+
+  useEffect(() => {
+    if (parameterError) return;
+    const validationTimer = window.setTimeout(() => {
+      void validateToken();
+    }, 0);
+
+    return () => window.clearTimeout(validationTimer);
+  }, [parameterError, validateToken]);
+
+  const displayedResult = parameterError ? { success: false, message: parameterError } : result;
 
   async function handleConfirm() {
     if (!token || !action || !customer) return;
@@ -87,9 +93,9 @@ function ApprovalContent() {
         }),
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse<ApprovalConfirmResponse>(response);
 
-      if (data.success) {
+      if (response.ok && data?.success) {
         setResult({
           success: true,
           message: action === 'approve'
@@ -97,7 +103,7 @@ function ApprovalContent() {
             : 'Cadastro rejeitado com sucesso.',
         });
       } else {
-        setResult({ success: false, message: data.error || 'Erro ao processar ação.' });
+        setResult({ success: false, message: data?.message || data?.error || 'Erro ao processar ação.' });
       }
     } catch (error) {
       console.error('Erro ao confirmar:', error);
@@ -107,7 +113,7 @@ function ApprovalContent() {
     }
   }
 
-  if (loading) {
+  if (loading && !parameterError) {
     return (
       <div className="min-h-screen bg-[#F4FBFD] flex items-center justify-center">
         <div className="text-center">
@@ -118,7 +124,7 @@ function ApprovalContent() {
     );
   }
 
-  if (result && !customer) {
+  if (displayedResult && !customer) {
     return (
       <div className="min-h-screen bg-[#F4FBFD] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 text-center">
@@ -129,7 +135,7 @@ function ApprovalContent() {
             Erro
           </h1>
           <p className="text-[#102833]/70 mb-6">
-            {result.message}
+            {displayedResult.message}
           </p>
           <Link
             href="/"
@@ -143,12 +149,12 @@ function ApprovalContent() {
     );
   }
 
-  if (result && customer) {
+  if (displayedResult && customer) {
     return (
       <div className="min-h-screen bg-[#F4FBFD] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 text-center">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${result.success ? 'bg-green-100' : 'bg-red-100'}`}>
-            {result.success ? (
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${displayedResult.success ? 'bg-green-100' : 'bg-red-100'}`}>
+            {displayedResult.success ? (
               <Check className="w-10 h-10 text-green-600" />
             ) : (
               <X className="w-10 h-10 text-red-600" />
@@ -158,7 +164,7 @@ function ApprovalContent() {
             {action === 'approve' ? 'Cadastro Aprovado!' : 'Cadastro Rejeitado'}
           </h1>
           <p className="text-[#102833]/70 mb-6 whitespace-pre-line">
-            {result.message}
+            {displayedResult.message}
           </p>
           <Link
             href="/"

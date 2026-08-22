@@ -14,6 +14,7 @@ import {
   Play,
   Filter
 } from 'lucide-react';
+import { type ApiErrorPayload, readJsonResponse } from '@/lib/http/read-json-response';
 
 const supabase = getSupabaseClient();
 
@@ -47,6 +48,10 @@ interface CustomerProfile {
 }
 
 type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+
+interface CustomerStatusResponse extends ApiErrorPayload {
+  emailSent?: boolean;
+}
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
@@ -113,8 +118,10 @@ export default function CustomersPage() {
       },
       body: JSON.stringify({ customerId, action, reason }),
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Não foi possível atualizar o cadastro.');
+    const result = await readJsonResponse<CustomerStatusResponse>(response);
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.message || result?.error || 'Não foi possível atualizar o cadastro.');
+    }
     return result;
   }
 
